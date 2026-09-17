@@ -14,6 +14,10 @@ CHROMA_PATH = BACKEND_DIR / "chroma_db"
 
 COLLECTION_NAME = "dit_knowledge"
 
+# Smaller distance = more relevant.
+# 0.45 is our starting relevance threshold.
+MAX_COSINE_DISTANCE = 0.45
+
 
 client = chromadb.PersistentClient(
     path=str(CHROMA_PATH)
@@ -22,7 +26,12 @@ client = chromadb.PersistentClient(
 
 def get_collection():
     return client.get_or_create_collection(
-        name=COLLECTION_NAME
+        name=COLLECTION_NAME,
+        configuration={
+            "hnsw": {
+                "space": "cosine"
+            }
+        },
     )
 
 
@@ -97,6 +106,11 @@ def search_knowledge(
         metadatas,
         distances,
     ):
+
+        # Ignore unrelated results
+        if distance > MAX_COSINE_DISTANCE:
+            continue
+
         matches.append(
             {
                 "document": document,
