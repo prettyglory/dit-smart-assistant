@@ -10,18 +10,17 @@ from app.services.vector_store import (
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = BACKEND_DIR.parent
 
-KNOWLEDGE_BASE_DIR = (
-    PROJECT_ROOT / "knowledge_base"
-)
+KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "knowledge_base"
 
 
 def parse_document(file_path: Path):
-
     metadata = {
         "source_title": file_path.stem,
         "source_url": "",
         "campus": "unknown",
-        "file": str(file_path.name),
+        "category": "general",
+        "level": "general",
+        "file": file_path.name,
     }
 
     content_lines = []
@@ -49,6 +48,16 @@ def parse_document(file_path: Path):
                 stripped.split(":", 1)[1].strip()
             )
 
+        elif stripped.startswith("CATEGORY:"):
+            metadata["category"] = (
+                stripped.split(":", 1)[1].strip()
+            )
+
+        elif stripped.startswith("LEVEL:"):
+            metadata["level"] = (
+                stripped.split(":", 1)[1].strip()
+            )
+
         else:
             content_lines.append(line)
 
@@ -64,7 +73,6 @@ def chunk_text(
     chunk_size: int = 180,
     overlap: int = 30,
 ):
-
     words = text.split()
 
     chunks = []
@@ -77,9 +85,10 @@ def chunk_text(
 
         chunk_words = words[start:end]
 
-        chunk = " ".join(chunk_words)
+        chunk = " ".join(chunk_words).strip()
 
-        chunks.append(chunk)
+        if chunk:
+            chunks.append(chunk)
 
         if end >= len(words):
             break
@@ -93,15 +102,20 @@ def generate_id(
     file_path: Path,
     index: int,
 ):
-
     raw_id = f"{file_path}-{index}"
 
     return hashlib.sha1(
-        raw_id.encode()
+        raw_id.encode("utf-8")
     ).hexdigest()
 
 
 def ingest():
+
+    if not KNOWLEDGE_BASE_DIR.exists():
+        raise FileNotFoundError(
+            f"Knowledge base directory not found: "
+            f"{KNOWLEDGE_BASE_DIR}"
+        )
 
     reset_collection()
 
@@ -119,9 +133,20 @@ def ingest():
 
     for file_path in files:
 
+        print(
+            f"Processing: "
+            f"{file_path.relative_to(KNOWLEDGE_BASE_DIR)}"
+        )
+
         content, metadata = parse_document(
             file_path
         )
+
+        if not content:
+            print(
+                f"Skipped empty file: {file_path.name}"
+            )
+            continue
 
         chunks = chunk_text(content)
 
@@ -140,10 +165,7 @@ def ingest():
             chunk_metadata["chunk"] = index
 
             documents.append(chunk)
-
-            metadatas.append(
-                chunk_metadata
-            )
+            metadatas.append(chunk_metadata)
 
             ids.append(
                 generate_id(
@@ -158,6 +180,7 @@ def ingest():
         ids=ids,
     )
 
+    print()
     print(
         f"Ingested {len(documents)} chunks "
         "into ChromaDB."
