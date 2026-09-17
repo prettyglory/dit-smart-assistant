@@ -9,6 +9,7 @@ class Source(BaseModel):
     title: str
     url: str = ""
     campus: str = ""
+    page: int | None = None
 
 
 class ChatResponse(BaseModel):
