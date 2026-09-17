@@ -2,8 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.schemas import ChatRequest, ChatResponse
-from app.services.groq_service import ask_groq
-
+from app.services.rag_service import answer_with_rag
 
 app = FastAPI(
     title="DIT Smart Assistant API",
@@ -37,10 +36,17 @@ def health():
     }
 
 
-@app.post("/api/chat", response_model=ChatResponse)
+@app.post(
+    "/api/chat",
+    response_model=ChatResponse,
+)
 def chat(request: ChatRequest):
-    answer = ask_groq(request.message)
+
+    answer, sources = answer_with_rag(
+        request.message
+    )
 
     return ChatResponse(
-        answer=answer
+        answer=answer,
+        sources=sources,
     )
