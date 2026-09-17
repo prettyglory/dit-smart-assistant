@@ -1,0 +1,90 @@
+SOURCE_TITLE: DIT Official Website - Academic Programmes
+SOURCE_URL: https://www.dit.ac.tz/academic/admission/programme
+CAMPUS: all
+CATEGORY: programme
+LEVEL: multiple
+
+Dar es Salaam Institute of Technology offers academic programmes at Ordinary Diploma, Bachelor Degree and Postgraduate levels.
+
+ORDINARY DIPLOMA PROGRAMMES
+
+Ordinary Diploma in Civil Engineering.
+
+Ordinary Diploma in Computer Engineering.
+
+Ordinary Diploma in Electrical Engineering.
+
+Ordinary Diploma in Renewable Energy Technology.
+
+Ordinary Diploma in Biomedical Equipment Engineering.
+
+Ordinary Diploma in Electronics and Telecommunications Engineering.
+
+Ordinary Diploma in Mechanical Engineering.
+
+Ordinary Diploma in Science and Laboratory Technology.
+
+Ordinary Diploma in Mining Engineering.
+
+Ordinary Diploma in Information Technology.
+
+Ordinary Diploma in Communication System Technology.
+
+Ordinary Diploma in Multimedia and Film Technology.
+
+Ordinary Diploma in Food Science and Technology.
+
+Ordinary Diploma in Biotechnology.
+
+Ordinary Diploma in Leather Processing Technologies.
+
+Ordinary Diploma in Industrial Automation Engineering.
+
+Ordinary Diploma in Electrical and Renewable Energy Engineering.
+
+
+BACHELOR DEGREE PROGRAMMES
+
+Bachelor of Engineering in Civil Engineering.
+
+Bachelor of Engineering in Computer Engineering.
+
+Bachelor of Engineering in Electrical Engineering.
+
+Bachelor of Engineering in Electronics and Telecommunications Engineering.
+
+Bachelor of Engineering in Mechanical Engineering.
+
+Bachelor of Technology in Laboratory Sciences.
+
+Bachelor of Engineering in Oil and Gas Engineering.
+
+Bachelor of Engineering in Mining Engineering.
+
+Bachelor of Engineering in Biomedical Engineering Equipment.
+
+
+POSTGRADUATE PROGRAMMES
+
+Master of Engineering in Maintenance Management.
+
+Master of Technology in Computing and Communications.
+
+Master of Engineering in Sustainable Energy Engineering.
+
+Master in Computational Science and Engineering.
+
+Master of Science in Cyber Security and Digital Forensics.
+
+Master of Information Systems Engineering and Management.
+
+Master of Engineering in Telecommunication Systems and Networks.
+
+
+IMPORTANT
+
+Programme availability may differ between DIT campuses.
+
+A programme appearing in the general DIT programme list does not automatically mean that it is offered at every campus.
+
+When answering campus-specific questions, the chatbot should use campus-specific programme information when it is available.

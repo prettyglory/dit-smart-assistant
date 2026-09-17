@@ -1,11 +1,23 @@
-SOURCE_TITLE: DIT Official Website - About DIT
+SOURCE_TITLE: DIT Official Website - DIT Campuses
 SOURCE_URL: https://www.dit.ac.tz/ad18942s08oub/about
 CAMPUS: all
+CATEGORY: campus
+LEVEL: general
 
-Dar es Salaam Institute of Technology (DIT) currently operates four campuses.
+Dar es Salaam Institute of Technology currently has four campuses.
 
-The Main Campus is located in Dar es Salaam.
+The campuses are:
 
-DIT also operates Mwanza Campus in Mwanza Region, Songwe Campus in Songwe Region, and Dodoma Campus in Dodoma Region.
+1. Main Campus in Dar es Salaam.
 
-DIT provides technical education in applied science, engineering, technology and related professional fields.
+2. Mwanza Campus in Mwanza Region.
+
+3. Songwe Campus in Songwe Region.
+
+4. Dodoma Campus in Dodoma Region, also referred to as Dodoma Technical College or DTC-DIT.
+
+DIT offers technical education and professional training in applied science, engineering, technology and related fields.
+
+Programme availability differs between campuses.
+
+When answering questions about a specific campus, the chatbot should use campus-specific information where available and should not assume that every DIT programme is offered at every campus.

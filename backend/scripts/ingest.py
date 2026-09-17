@@ -270,9 +270,16 @@ def ingest_pdf_file(
         file_path
     )
 
-    pages = extract_pdf_pages(
-        file_path
-    )
+    try:
+        pages = extract_pdf_pages(
+            file_path
+        )
+    except Exception as error:
+        print(
+            f"ERROR: Could not read PDF "
+            f"{file_path.name}: {error}"
+        )
+        return
 
     relative_path = (
         file_path.relative_to(

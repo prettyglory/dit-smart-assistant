@@ -1,0 +1,51 @@
+SOURCE_TITLE: DIT Official Website - Mwanza Campus
+SOURCE_URL: https://www.dit.ac.tz/stats_webull/campuses/1Mwanza%20Campus
+CAMPUS: Mwanza
+CATEGORY: programme
+LEVEL: multiple
+
+DIT Mwanza Campus is located in Mwanza Region.
+
+National Vocational Award programmes include:
+Footwear and Leather Goods.
+Laboratory Assistant.
+Information Technology.
+
+Basic Technician Certificate programmes include:
+Leather Products Technology.
+Science and Laboratory Technology.
+Leather Processing Technology.
+Food Processing Technology.
+Information Technology.
+Agro Post Harvest Technology.
+Agro Bio Processing Technology.
+Textile Technology.
+Fashion and Design Technology.
+
+Technician Certificate programmes include:
+Leather Products Technology.
+Science and Laboratory Technology.
+Leather Processing Technology.
+Food Processing Technology.
+Agro Post Harvest Technology.
+Agro Bio Processing Technology.
+Textile Technology.
+Fashion and Design Technology.
+Information Technology.
+
+Ordinary Diploma programmes include:
+Science and Laboratory Technology.
+Leather Products Technology.
+Leather Processing Technology.
+Food Processing Technology.
+Agro Post Harvest Technology.
+Agro Bio Process Technology.
+Textile Technology.
+Fashion and Design Technology.
+Information Technology.
+
+Campus postal address:
+P.O. Box 2525 Mwanza.
+
+Campus email:
+director@mwanzacampus.dit.ac.tz
