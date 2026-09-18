@@ -1,122 +1,216 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState } from "react";
+import axios from "axios";
+import "./App.css";
+
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://127.0.0.1:8000";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      text:
+        "Hello! I am DIT Smart Assistant. " +
+        "Ask me about DIT campuses, programmes, admissions, " +
+        "fees, accommodation, regulations and academic information.",
+      sources: [],
+    },
+  ]);
+
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const sendMessage = async () => {
+    const question = input.trim();
+
+    if (!question || loading) {
+      return;
+    }
+
+    setMessages((current) => [
+      ...current,
+      {
+        role: "user",
+        text: question,
+        sources: [],
+      },
+    ]);
+
+    setInput("");
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/chat`,
+        {
+          message: question,
+        }
+      );
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text: response.data.answer,
+          sources: response.data.sources || [],
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          text:
+            "Sorry, I could not connect to the DIT Smart Assistant server.",
+          sources: [],
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
+      sendMessage();
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="app">
+      <header className="header">
         <div>
-          <h1>Get started</h1>
+          <h1>DIT Smart Assistant</h1>
           <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+            AI-powered information assistant for
+            Dar es Salaam Institute of Technology
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="status">
+          <span className="status-dot"></span>
+          Online
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <main className="chat-container">
+        <div className="messages">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`message-row ${message.role}`}
+            >
+              <div className="message">
+                <div className="message-label">
+                  {message.role === "user"
+                    ? "You"
+                    : "DIT Assistant"}
+                </div>
+
+                <div className="message-text">
+                  {message.text}
+                </div>
+
+                {message.sources?.length > 0 && (
+                  <div className="sources">
+                    <strong>
+                      Verified Sources
+                    </strong>
+
+                    {message.sources.map(
+                      (source, sourceIndex) => (
+                        <div
+                          className="source"
+                          key={sourceIndex}
+                        >
+                          <div>
+                            {source.url ? (
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {source.title}
+                              </a>
+                            ) : (
+                              <span>
+                                {source.title}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="source-meta">
+                            {source.page && (
+                              <span>
+                                Page {source.page}
+                              </span>
+                            )}
+
+                            {source.campus &&
+                              source.campus !==
+                                "unknown" && (
+                                <span>
+                                  {source.campus ===
+                                  "all"
+                                    ? "All campuses"
+                                    : `${source.campus} Campus`}
+                                </span>
+                              )}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="message-row assistant">
+              <div className="message">
+                <div className="message-label">
+                  DIT Assistant
+                </div>
+
+                <div className="typing">
+                  Searching verified DIT information...
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="input-area">
+          <textarea
+            value={input}
+            onChange={(event) =>
+              setInput(event.target.value)
+            }
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about DIT..."
+            rows="2"
+          />
+
+          <button
+            onClick={sendMessage}
+            disabled={
+              loading || !input.trim()
+            }
+          >
+            Send
+          </button>
+        </div>
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
