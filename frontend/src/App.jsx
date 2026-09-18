@@ -23,6 +23,7 @@ const initialMessage = {
     "IPT and academic information**.\n\n" +
     "Unaweza kuuliza kwa **English au Kiswahili**.",
   sources: [],
+  feedback: null,
 };
 
 
@@ -66,9 +67,6 @@ function App() {
     }
 
 
-    // Keep only recent conversation messages.
-    // These are sent to FastAPI so follow-up
-    // questions can understand previous context.
     const history = messages
       .slice(-6)
       .map((message) => ({
@@ -81,6 +79,7 @@ function App() {
       role: "user",
       text: question,
       sources: [],
+      feedback: null,
     };
 
 
@@ -109,6 +108,7 @@ function App() {
         text: response.data.answer,
         sources:
           response.data.sources || [],
+        feedback: null,
       };
 
 
@@ -131,6 +131,7 @@ function App() {
             "Sorry, I could not connect to the DIT Smart Assistant server.\n\n" +
             "Please make sure the backend server is running.",
           sources: [],
+          feedback: null,
         },
       ]);
     } finally {
@@ -150,6 +151,34 @@ function App() {
     ]);
 
     setInput("");
+  };
+
+
+  const handleFeedback = (
+    messageIndex,
+    feedbackValue
+  ) => {
+    setMessages((current) =>
+      current.map(
+        (message, index) => {
+          if (
+            index !== messageIndex
+          ) {
+            return message;
+          }
+
+          return {
+            ...message,
+
+            feedback:
+              message.feedback ===
+              feedbackValue
+                ? null
+                : feedbackValue,
+          };
+        }
+      )
+    );
   };
 
 
@@ -364,14 +393,12 @@ function App() {
                             <div className="source-meta">
 
                               {source.page && (
-
                                 <span>
                                   Page{" "}
                                   {
                                     source.page
                                   }
                                 </span>
-
                               )}
 
 
@@ -395,6 +422,68 @@ function App() {
                           </div>
 
                         )
+                      )}
+
+                    </div>
+
+                  )}
+
+
+                  {message.role ===
+                    "assistant" &&
+                    index !== 0 && (
+
+                    <div className="feedback-area">
+
+                      <span className="feedback-label">
+                        Was this helpful?
+                      </span>
+
+
+                      <button
+                        className={
+                          message.feedback ===
+                          "positive"
+                            ? "feedback-button active"
+                            : "feedback-button"
+                        }
+                        onClick={() =>
+                          handleFeedback(
+                            index,
+                            "positive"
+                          )
+                        }
+                        aria-label="Helpful answer"
+                        title="Helpful"
+                      >
+                        👍
+                      </button>
+
+
+                      <button
+                        className={
+                          message.feedback ===
+                          "negative"
+                            ? "feedback-button active"
+                            : "feedback-button"
+                        }
+                        onClick={() =>
+                          handleFeedback(
+                            index,
+                            "negative"
+                          )
+                        }
+                        aria-label="Not helpful answer"
+                        title="Not helpful"
+                      >
+                        👎
+                      </button>
+
+
+                      {message.feedback && (
+                        <span className="feedback-thanks">
+                          Thanks for your feedback.
+                        </span>
                       )}
 
                     </div>
