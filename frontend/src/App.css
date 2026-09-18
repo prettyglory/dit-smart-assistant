@@ -761,3 +761,163 @@ textarea {
     padding-right: 10px;
   }
 }
+/* ========================================
+   VOICE INPUT
+   ======================================== */
+
+.voice-language {
+  width: 58px;
+
+  border: 1px solid #cfd8e6;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #143a78;
+
+  font-weight: 700;
+
+  text-align: center;
+
+  outline: none;
+
+  cursor: pointer;
+}
+
+
+.voice-language:focus {
+  border-color: #143a78;
+}
+
+
+.mic-button {
+  width: 52px;
+  min-width: 52px;
+
+  padding: 0 !important;
+
+  border: 1px solid #cfd8e6 !important;
+
+  background: #ffffff !important;
+
+  color: #143a78 !important;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+
+.mic-button:hover {
+  background: #edf4ff !important;
+
+  border-color: #143a78 !important;
+}
+
+
+.mic-button.listening {
+  background: #fee2e2 !important;
+
+  border-color: #dc2626 !important;
+
+  animation:
+    microphonePulse 1.2s
+    infinite;
+}
+
+
+@keyframes microphonePulse {
+
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+
+/* ========================================
+   SPEAKER
+   ======================================== */
+
+.assistant-actions {
+  margin-top: 14px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+
+.speaker-button {
+  padding: 6px 11px;
+
+  border: 1px solid #d9e0ea;
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #143a78;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+
+.speaker-button:hover {
+  background: #edf4ff;
+
+  border-color: #143a78;
+}
+
+
+.speaker-button.speaking {
+  background: #dce9ff;
+
+  border-color: #143a78;
+}
+
+
+/* ========================================
+   MOBILE VOICE
+   ======================================== */
+
+@media (max-width: 650px) {
+
+  .voice-language {
+    width: 48px;
+
+    font-size: 12px;
+  }
+
+  .mic-button {
+    width: 46px;
+    min-width: 46px;
+
+    font-size: 18px;
+  }
+
+  .speaker-button {
+    font-size: 11px;
+  }
+}

@@ -45,7 +45,21 @@ function App() {
   const [loading, setLoading] =
     useState(false);
 
+  // Voice input
+  const [isListening, setIsListening] =
+    useState(false);
+
+  const [voiceLanguage, setVoiceLanguage] =
+    useState("sw-TZ");
+
+  // Speaker
+  const [speakingIndex, setSpeakingIndex] =
+    useState(null);
+
   const messagesEndRef =
+    useRef(null);
+
+  const recognitionRef =
     useRef(null);
 
 
@@ -56,23 +70,334 @@ function App() {
   }, [messages, loading]);
 
 
+  // Stop microphone and speaker when component closes
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+
+  // =====================================
+  // VOICE INPUT
+  // =====================================
+
+  const startVoiceInput = () => {
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert(
+        "Voice recognition is not supported by this browser. " +
+        "Please use Google Chrome or Microsoft Edge."
+      );
+
+      return;
+    }
+
+
+    // Stop if already listening
+    if (isListening) {
+      recognitionRef.current?.stop();
+
+      setIsListening(false);
+
+      return;
+    }
+
+
+    const recognition =
+      new SpeechRecognition();
+
+    recognition.lang =
+      voiceLanguage;
+
+    recognition.continuous =
+      false;
+
+    recognition.interimResults =
+      false;
+
+    recognition.maxAlternatives =
+      1;
+
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+
+    recognition.onresult = (
+      event
+    ) => {
+      const transcript =
+        event.results[0][0]
+          .transcript;
+
+      setInput(transcript);
+    };
+
+
+    recognition.onerror = (
+      event
+    ) => {
+      console.error(
+        "Speech recognition error:",
+        event.error
+      );
+
+      setIsListening(false);
+
+      if (
+        event.error ===
+        "not-allowed"
+      ) {
+        alert(
+          "Microphone permission was denied. " +
+          "Please allow microphone access in your browser."
+        );
+      }
+    };
+
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+
+    recognitionRef.current =
+      recognition;
+
+    recognition.start();
+  };
+
+
+  // =====================================
+  // SPEAKER / TEXT TO SPEECH
+  // =====================================
+
+  const cleanTextForSpeech = (
+    text
+  ) => {
+    return text
+      .replace(/#{1,6}\s?/g, "")
+      .replace(/\*\*/g, "")
+      .replace(/\*/g, "")
+      .replace(/`/g, "")
+      .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+      .replace(/[-•]\s/g, "")
+      .replace(/\n+/g, ". ")
+      .trim();
+  };
+
+
+  const detectSpeechLanguage = (
+    text
+  ) => {
+    const lower =
+      text.toLowerCase();
+
+    const swahiliWords = [
+      "na ",
+      "kwa ",
+      "ya ",
+      "ni ",
+      "katika ",
+      "wanafunzi",
+      "kujiunga",
+      "ada",
+      "masomo",
+      "programu",
+      "chuo",
+      "kampasi",
+      "sifa",
+      "tafadhali",
+    ];
+
+
+    const hasSwahili =
+      swahiliWords.some(
+        (word) =>
+          lower.includes(word)
+      );
+
+
+    return hasSwahili
+      ? "sw-TZ"
+      : "en-US";
+  };
+
+
+  const speakMessage = (
+    text,
+    index
+  ) => {
+    if (
+      !(
+        "speechSynthesis"
+        in window
+      )
+    ) {
+      alert(
+        "Text-to-speech is not supported by this browser."
+      );
+
+      return;
+    }
+
+
+    // Clicking same speaker stops it
+    if (
+      speakingIndex === index
+    ) {
+      window.speechSynthesis.cancel();
+
+      setSpeakingIndex(null);
+
+      return;
+    }
+
+
+    // Stop any previous speech
+    window.speechSynthesis.cancel();
+
+
+    const cleanText =
+      cleanTextForSpeech(
+        text
+      );
+
+
+    const utterance =
+      new SpeechSynthesisUtterance(
+        cleanText
+      );
+
+
+    const language =
+      detectSpeechLanguage(
+        cleanText
+      );
+
+
+    utterance.lang =
+      language;
+
+    utterance.rate =
+      0.95;
+
+    utterance.pitch =
+      1;
+
+    utterance.volume =
+      1;
+
+
+    // Try to select matching browser voice
+    const voices =
+      window.speechSynthesis
+        .getVoices();
+
+
+    const preferredVoice =
+      voices.find(
+        (voice) =>
+          voice.lang
+            .toLowerCase()
+            .startsWith(
+              language
+                .split("-")[0]
+                .toLowerCase()
+            )
+      );
+
+
+    if (preferredVoice) {
+      utterance.voice =
+        preferredVoice;
+    }
+
+
+    utterance.onstart =
+      () => {
+        setSpeakingIndex(
+          index
+        );
+      };
+
+
+    utterance.onend =
+      () => {
+        setSpeakingIndex(
+          null
+        );
+      };
+
+
+    utterance.onerror =
+      () => {
+        setSpeakingIndex(
+          null
+        );
+      };
+
+
+    window.speechSynthesis
+      .speak(
+        utterance
+      );
+  };
+
+
+  // =====================================
+  // SEND QUESTION
+  // =====================================
+
   const sendQuestion = async (
     questionText
   ) => {
     const question =
       questionText.trim();
 
-    if (!question || loading) {
+    if (
+      !question ||
+      loading
+    ) {
       return;
     }
 
 
-    const history = messages
-      .slice(-6)
-      .map((message) => ({
-        role: message.role,
-        content: message.text,
-      }));
+    // Stop speaking when a new question is sent
+    if (
+      "speechSynthesis"
+      in window
+    ) {
+      window.speechSynthesis
+        .cancel();
+
+      setSpeakingIndex(
+        null
+      );
+    }
+
+
+    const history =
+      messages
+        .slice(-6)
+        .map(
+          (message) => ({
+            role:
+              message.role,
+
+            content:
+              message.text,
+          })
+        );
 
 
     const userMessage = {
@@ -83,12 +408,15 @@ function App() {
     };
 
 
-    setMessages((current) => [
-      ...current,
-      userMessage,
-    ]);
+    setMessages(
+      (current) => [
+        ...current,
+        userMessage,
+      ]
+    );
 
     setInput("");
+
     setLoading(true);
 
 
@@ -97,25 +425,35 @@ function App() {
         await axios.post(
           `${API_URL}/api/chat`,
           {
-            message: question,
-            history: history,
+            message:
+              question,
+
+            history:
+              history,
           }
         );
 
 
       const assistantMessage = {
         role: "assistant",
-        text: response.data.answer,
+
+        text:
+          response.data.answer,
+
         sources:
-          response.data.sources || [],
+          response.data.sources ||
+          [],
+
         feedback: null,
       };
 
 
-      setMessages((current) => [
-        ...current,
-        assistantMessage,
-      ]);
+      setMessages(
+        (current) => [
+          ...current,
+          assistantMessage,
+        ]
+      );
     } catch (error) {
       console.error(
         "Chat request failed:",
@@ -123,25 +461,37 @@ function App() {
       );
 
 
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          text:
-            "Sorry, I could not connect to the DIT Smart Assistant server.\n\n" +
-            "Please make sure the backend server is running.",
-          sources: [],
-          feedback: null,
-        },
-      ]);
+      setMessages(
+        (current) => [
+          ...current,
+
+          {
+            role:
+              "assistant",
+
+            text:
+              "Sorry, I could not connect to the DIT Smart Assistant server.\n\n" +
+              "Please make sure the backend server is running.",
+
+            sources: [],
+
+            feedback:
+              null,
+          },
+        ]
+      );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   };
 
 
   const sendMessage = () => {
-    sendQuestion(input);
+    sendQuestion(
+      input
+    );
   };
 
 
@@ -151,6 +501,22 @@ function App() {
     ]);
 
     setInput("");
+
+    recognitionRef.current?.stop();
+
+    setIsListening(false);
+
+    if (
+      "speechSynthesis"
+      in window
+    ) {
+      window.speechSynthesis
+        .cancel();
+    }
+
+    setSpeakingIndex(
+      null
+    );
   };
 
 
@@ -158,26 +524,31 @@ function App() {
     messageIndex,
     feedbackValue
   ) => {
-    setMessages((current) =>
-      current.map(
-        (message, index) => {
-          if (
-            index !== messageIndex
-          ) {
-            return message;
+    setMessages(
+      (current) =>
+        current.map(
+          (
+            message,
+            index
+          ) => {
+            if (
+              index !==
+              messageIndex
+            ) {
+              return message;
+            }
+
+            return {
+              ...message,
+
+              feedback:
+                message.feedback ===
+                feedbackValue
+                  ? null
+                  : feedbackValue,
+            };
           }
-
-          return {
-            ...message,
-
-            feedback:
-              message.feedback ===
-              feedbackValue
-                ? null
-                : feedbackValue,
-          };
-        }
-      )
+        )
     );
   };
 
@@ -186,7 +557,8 @@ function App() {
     event
   ) => {
     if (
-      event.key === "Enter" &&
+      event.key ===
+        "Enter" &&
       !event.shiftKey
     ) {
       event.preventDefault();
@@ -266,7 +638,8 @@ function App() {
 
           <p>
             Ask questions using
-            English or Kiswahili.
+            English, Kiswahili,
+            or your voice.
           </p>
 
 
@@ -299,7 +672,10 @@ function App() {
         <div className="messages">
 
           {messages.map(
-            (message, index) => (
+            (
+              message,
+              index
+            ) => (
 
               <div
                 key={index}
@@ -433,6 +809,45 @@ function App() {
                     "assistant" &&
                     index !== 0 && (
 
+                    <div className="assistant-actions">
+
+                      <button
+                        className={
+                          speakingIndex ===
+                          index
+                            ? "speaker-button speaking"
+                            : "speaker-button"
+                        }
+                        onClick={() =>
+                          speakMessage(
+                            message.text,
+                            index
+                          )
+                        }
+                        title={
+                          speakingIndex ===
+                          index
+                            ? "Stop reading"
+                            : "Read answer aloud"
+                        }
+                      >
+
+                        {speakingIndex ===
+                        index
+                          ? "⏹ Stop"
+                          : "🔊 Listen"}
+
+                      </button>
+
+                    </div>
+
+                  )}
+
+
+                  {message.role ===
+                    "assistant" &&
+                    index !== 0 && (
+
                     <div className="feedback-area">
 
                       <span className="feedback-label">
@@ -453,7 +868,6 @@ function App() {
                             "positive"
                           )
                         }
-                        aria-label="Helpful answer"
                         title="Helpful"
                       >
                         👍
@@ -473,7 +887,6 @@ function App() {
                             "negative"
                           )
                         }
-                        aria-label="Not helpful answer"
                         title="Not helpful"
                       >
                         👎
@@ -509,8 +922,7 @@ function App() {
                 </div>
 
                 <div className="typing">
-                  Searching verified
-                  DIT information...
+                  Searching verified DIT information...
                 </div>
 
               </div>
@@ -520,7 +932,9 @@ function App() {
           )}
 
 
-          <div ref={messagesEndRef} />
+          <div
+            ref={messagesEndRef}
+          />
 
         </div>
 
@@ -540,6 +954,49 @@ function App() {
 
         <div className="input-area">
 
+          <select
+            className="voice-language"
+            value={voiceLanguage}
+            onChange={(event) =>
+              setVoiceLanguage(
+                event.target.value
+              )
+            }
+            title="Voice language"
+          >
+            <option value="sw-TZ">
+              SW
+            </option>
+
+            <option value="en-US">
+              EN
+            </option>
+          </select>
+
+
+          <button
+            type="button"
+            className={
+              isListening
+                ? "mic-button listening"
+                : "mic-button"
+            }
+            onClick={
+              startVoiceInput
+            }
+            disabled={loading}
+            title={
+              isListening
+                ? "Stop listening"
+                : "Speak your question"
+            }
+          >
+            {isListening
+              ? "⏹"
+              : "🎤"}
+          </button>
+
+
           <textarea
             value={input}
             onChange={(event) =>
@@ -550,12 +1007,17 @@ function App() {
             onKeyDown={
               handleKeyDown
             }
-            placeholder="Ask anything about DIT..."
+            placeholder={
+              isListening
+                ? "Listening..."
+                : "Ask anything about DIT..."
+            }
             rows="2"
           />
 
 
           <button
+            className="send-button"
             onClick={
               sendMessage
             }
