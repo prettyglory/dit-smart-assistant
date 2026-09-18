@@ -120,10 +120,10 @@ def extract_pdf_pages(file_path: Path):
         reader.pages,
         start=1,
     ):
-
         try:
             text = page.extract_text(
-                extraction_mode="layout"
+                extraction_mode="layout",
+                layout_mode_space_vertically=False,
             )
 
         except Exception:
