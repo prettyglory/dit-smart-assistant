@@ -4,42 +4,100 @@ CAMPUS: all
 CATEGORY: admission
 LEVEL: multiple
 
-ORDINARY DIPLOMA
+DIT ADMISSION REQUIREMENTS
 
-For direct admission into Ordinary Diploma programmes, an applicant normally needs a Certificate of Secondary Education Examination (CSEE) with at least four passes at D grade or higher.
+Admission requirements depend on the academic level and programme for which a student is applying.
 
-For many engineering and technology programmes, the required subjects include Physics or Engineering Science, Mathematics, Chemistry, and another eligible subject.
+ORDINARY DIPLOMA - NTA LEVEL 4 TO 6
 
-Some programmes have programme-specific requirements.
+General direct-entry requirement:
 
-Applicants with National Vocational Award Level III or Trade Test Grade I qualifications may also be eligible for relevant programmes, subject to the applicable DIT admission requirements.
+An applicant should hold a Certificate of Secondary Education Examination (CSEE) with at least four passes at D grade or higher.
+
+For most engineering and technology Ordinary Diploma programmes, the passes should include:
+
+Physics or Engineering Science.
+Mathematics.
+Chemistry.
+One other subject excluding a religious subject.
+
+Therefore, the minimum general pass grade is D grade or higher in the required subjects.
+
+For Science and Laboratory Technology, Biomedical Equipment Engineering, Food Science and Technology, Leather Products Technology, Leather Processing Technology, Food Processing Technology and Biotechnology, applicants should normally have D grade or higher in:
+
+Physics or Engineering Science.
+Mathematics.
+Chemistry.
+Biology.
+
+For Information Technology and Communication System Technology, applicants should normally have D grade or higher in:
+
+Physics or Engineering Science.
+Mathematics.
+Any other two subjects excluding a religious subject.
+
+Alternative entry may also be available to applicants holding:
+
+General Certificate Course in Engineering (GCE).
+
+OR
+
+National Vocational Award (NVA) Level III or Trade Test Certificate Grade I in the relevant field, together with at least D grade in Mathematics at CSEE.
+
 
 BACHELOR DEGREE - THREE YEAR PROGRAMMES
 
-For three-year Bachelor of Engineering or Bachelor of Technology programmes, applicants may qualify with a relevant Ordinary Diploma, NTA Level 6, or an equivalent qualification.
+This route applies mainly to applicants who already hold a relevant Ordinary Diploma, NTA Level 6, or equivalent qualification.
 
-The relevant Ordinary Diploma should normally have a minimum GPA of 3.0.
+An applicant with a relevant Ordinary Diploma should have:
 
-Applicants must also satisfy the applicable secondary education requirements.
+A relevant Ordinary Diploma, NTA Level 6 or equivalent.
 
-Applicants with a relevant Full Technician Certificate (FTC) or equivalent qualification may also be considered according to DIT admission regulations.
+Minimum GPA of 3.0.
+
+The qualification should be from a recognized institution.
+
+The applicant should also satisfy the relevant CSEE subject requirements.
+
+For applicants with a Full Technician Certificate (FTC):
+
+The qualification should be in a relevant field.
+
+The applicant should have at least an average grade of C.
+
+Alternatively, the applicant should have an average of at least 3 points using the scale:
+
+A = 5.
+B = 4.
+C = 3.
+D = 2.
+
+Relevant secondary-school subject requirements must also be satisfied.
+
 
 BACHELOR DEGREE - FOUR YEAR PROGRAMMES
 
-Applicants using Advanced Certificate of Secondary Education Examination (ACSEE) qualifications may qualify through relevant science combinations.
+This route applies mainly to applicants using Advanced Certificate of Secondary Education Examination (ACSEE) qualifications.
 
-Accepted combinations include:
+Accepted science combinations include:
 
 Physics, Chemistry and Mathematics (PCM).
 
 Physics, Geography and Mathematics (PGM).
 
-Applicants must have principal passes in Mathematics and Physics from the same sitting.
+Applicants should have principal passes in Mathematics and Physics from the same sitting.
 
-The total points should meet the minimum points required by DIT for the applicable admission year.
+The total points should be at least 4.0 according to the applicable DIT admission conversion scale.
+
+Applicants with an Ordinary Diploma, NTA Level 6, or Full Technician Certificate who wish to change their field of study may also be considered subject to the applicable DIT requirements.
+
 
 IMPORTANT
 
-Admission requirements can vary by programme and may change between academic years.
+The minimum requirements above are general admission requirements.
 
-Applicants should always confirm current programme-specific requirements using the official DIT admission portal before applying.
+Individual programmes may have additional or programme-specific requirements.
+
+Admission requirements and cut-off conditions may change between academic years.
+
+Applicants should always confirm the current requirements through the official DIT admission portal before submitting an application.

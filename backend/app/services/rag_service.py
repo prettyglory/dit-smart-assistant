@@ -28,7 +28,7 @@ def is_follow_up(question: str) -> bool:
     ):
         return True
 
-    # Very short questions are often follow-ups
+    # Very short questions are often follow-ups.
     if len(q.split()) <= 4:
         ambiguous_words = [
             "diploma",
@@ -56,7 +56,7 @@ def get_last_user_question(
     history: list[dict],
 ) -> str:
     """
-    Get the most recent real user question.
+    Return the most recent user question.
     """
 
     for message in reversed(history):
@@ -66,10 +66,9 @@ def get_last_user_question(
 
         content = message.get(
             "content",
-            ""
+            "",
         ).strip()
 
-        # Do not use the initial assistant message
         if content:
             return content
 
@@ -81,11 +80,12 @@ def build_retrieval_query(
     history: list[dict],
 ) -> str:
     """
-    Use conversation history only when the
-    current question is actually a follow-up.
+    Use previous conversation only when the
+    current question is genuinely a follow-up.
 
-    This prevents old topics such as fees from
-    contaminating a new campus/programme search.
+    This prevents an old topic such as fees
+    from contaminating a new programme or
+    campus question.
     """
 
     if not is_follow_up(question):
@@ -103,17 +103,19 @@ def build_retrieval_query(
     q = question.lower().strip()
     previous = previous_question.lower()
 
-    # ----------------------------------
+    # -------------------------------------------------
     # Fee follow-ups
-    # ----------------------------------
+    # -------------------------------------------------
 
     fee_words = [
         "fee",
         "fees",
         "tuition",
         "cost",
+        "payment",
         "ada",
         "gharama",
+        "malipo",
     ]
 
     previous_is_fee_question = any(
@@ -147,9 +149,9 @@ def build_retrieval_query(
                 "and charges"
             )
 
-    # ----------------------------------
+    # -------------------------------------------------
     # Programme follow-ups
-    # ----------------------------------
+    # -------------------------------------------------
 
     programme_words = [
         "programme",
@@ -185,27 +187,88 @@ def build_retrieval_query(
                 "DIT Dodoma Campus"
             )
 
-        if "dar" in q:
+        if (
+            "dar" in q
+            or "main campus" in q
+        ):
             return (
                 "programmes offered at "
                 "DIT Main Campus Dar es Salaam"
             )
 
-    # ----------------------------------
+    # -------------------------------------------------
+    # Admission follow-ups
+    # -------------------------------------------------
+
+    admission_words = [
+        "admission",
+        "requirement",
+        "requirements",
+        "joining",
+        "join",
+        "qualification",
+        "qualify",
+        "gpa",
+        "grade",
+        "pass mark",
+        "passmark",
+        "sifa",
+        "kujiunga",
+    ]
+
+    previous_is_admission_question = any(
+        word in previous
+        for word in admission_words
+    )
+
+    if previous_is_admission_question:
+
+        if "diploma" in q:
+            return (
+                "DIT Ordinary Diploma admission "
+                "requirements minimum CSEE passes "
+                "and minimum grades"
+            )
+
+        if "bachelor" in q:
+            return (
+                "DIT Bachelor degree admission "
+                "requirements Ordinary Diploma GPA "
+                "and ACSEE direct entry"
+            )
+
+        if "gpa" in q:
+            return (
+                "DIT minimum GPA required for "
+                "Bachelor degree admission"
+            )
+
+        if (
+            "grade" in q
+            or "pass" in q
+        ):
+            return (
+                "DIT Ordinary Diploma minimum "
+                "CSEE passes grades and admission "
+                "requirements"
+            )
+
+    # -------------------------------------------------
     # Generic follow-up
-    # ----------------------------------
+    # -------------------------------------------------
 
     return (
-        f"Previous question: "
-        f"{previous_question}\n"
-        f"Follow-up question: "
-        f"{question}"
+        f"Previous question: {previous_question}\n"
+        f"Follow-up question: {question}"
     )
 
 
 def format_conversation_history(
     history: list[dict],
 ) -> str:
+    """
+    Format recent chat messages for Groq.
+    """
 
     lines = []
 
@@ -213,12 +276,12 @@ def format_conversation_history(
 
         role = message.get(
             "role",
-            ""
+            "",
         )
 
         content = message.get(
             "content",
-            ""
+            "",
         ).strip()
 
         if not content:
@@ -243,14 +306,18 @@ def format_conversation_history(
 def detect_categories(
     question: str,
 ) -> list[str]:
+    """
+    Detect the most appropriate DIT knowledge
+    category for the retrieval query.
+    """
 
     q = question.lower()
 
     categories = []
 
-    # -----------------------------
+    # -------------------------------------------------
     # Fees
-    # -----------------------------
+    # -------------------------------------------------
 
     fee_keywords = [
         "fee",
@@ -271,9 +338,9 @@ def detect_categories(
             "fees"
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # Academic calendar
-    # -----------------------------
+    # -------------------------------------------------
 
     calendar_keywords = [
         "almanac",
@@ -286,9 +353,13 @@ def detect_categories(
         "exam period",
         "semester start",
         "semester end",
+        "academic year start",
+        "academic year end",
         "mwaka wa masomo",
         "semester inaanza",
         "semester inaisha",
+        "tarehe ya usajili",
+        "mitihani inaanza",
     ]
 
     if any(
@@ -299,9 +370,9 @@ def detect_categories(
             "academic_calendar"
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # Accommodation
-    # -----------------------------
+    # -------------------------------------------------
 
     accommodation_keywords = [
         "hostel",
@@ -320,13 +391,14 @@ def detect_categories(
             "accommodation"
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # IPT
-    # -----------------------------
+    # -------------------------------------------------
 
     ipt_keywords = [
         "ipt",
         "industrial practical",
+        "industrial practical training",
         "industrial training",
         "field training",
         "practical training",
@@ -340,17 +412,19 @@ def detect_categories(
             "ipt"
         )
 
-    # -----------------------------
-    # Regulations
-    # -----------------------------
+    # -------------------------------------------------
+    # Student regulations
+    # -------------------------------------------------
 
     regulation_keywords = [
         "ethics",
         "conduct",
+        "code of conduct",
         "dress code",
         "discipline",
         "disciplinary",
         "student regulation",
+        "student regulations",
         "student rules",
         "academic integrity",
         "misconduct",
@@ -364,21 +438,40 @@ def detect_categories(
             "student_regulations"
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # Admissions
-    # -----------------------------
+    # -------------------------------------------------
 
     admission_keywords = [
         "admission",
-        "apply",
-        "application",
-        "entry requirement",
+        "admissions",
         "admission requirement",
+        "admission requirements",
+        "entry requirement",
+        "entry requirements",
+        "joining dit",
+        "join dit",
+        "joining requirements",
+        "requirements for joining",
+        "requirements to join",
+        "how to join",
+        "apply to dit",
+        "application",
         "minimum gpa",
+        "minimum grade",
+        "pass mark",
+        "passmark",
         "qualification",
+        "qualifications",
+        "qualify",
         "eligible",
-        "kuomba",
+        "eligibility",
+        "kujiunga dit",
+        "kujiunga na dit",
         "sifa za kujiunga",
+        "vigezo vya kujiunga",
+        "gpa ya kujiunga",
+        "grade ya kujiunga",
     ]
 
     if any(
@@ -389,9 +482,9 @@ def detect_categories(
             "admission"
         )
 
-    # -----------------------------
+    # -------------------------------------------------
     # Programmes
-    # -----------------------------
+    # -------------------------------------------------
 
     programme_keywords = [
         "programme",
@@ -406,6 +499,8 @@ def detect_categories(
         "master",
         "computer engineering",
         "civil engineering",
+        "electrical engineering",
+        "mechanical engineering",
     ]
 
     if any(
@@ -416,9 +511,9 @@ def detect_categories(
             "programme"
         )
 
-    # -----------------------------
-    # Campus
-    # -----------------------------
+    # -------------------------------------------------
+    # Campuses
+    # -------------------------------------------------
 
     campus_keywords = [
         "campus",
@@ -438,30 +533,44 @@ def detect_categories(
             "campus"
         )
 
-    # ----------------------------------
+    # -------------------------------------------------
     # Priority categories
-    # ----------------------------------
+    # -------------------------------------------------
 
+    # Fee questions should search only fee documents.
     if "fees" in categories:
         return ["fees"]
 
+    # Calendar questions should search Almanac only.
     if "academic_calendar" in categories:
         return [
             "academic_calendar"
         ]
 
+    # Accommodation questions should use policy docs.
     if "accommodation" in categories:
         return [
             "accommodation"
         ]
 
+    # IPT questions should search IPT knowledge.
     if "ipt" in categories:
         return ["ipt"]
 
+    # Regulations questions should use regulations.
     if "student_regulations" in categories:
         return [
             "student_regulations"
         ]
+
+    # IMPORTANT:
+    # Admission questions take priority over general
+    # programme searches. This ensures questions such
+    # as "requirements for joining DIT" retrieve the
+    # admission requirements rather than programme or
+    # prospectus information.
+    if "admission" in categories:
+        return ["admission"]
 
     return list(
         dict.fromkeys(categories)
@@ -472,6 +581,11 @@ def answer_with_rag(
     question: str,
     history: list[dict] | None = None,
 ):
+    """
+    Retrieve relevant verified DIT knowledge and
+    generate a grounded response using Groq.
+    """
+
     history = history or []
 
     retrieval_query = (
@@ -487,9 +601,8 @@ def answer_with_rag(
         )
     )
 
-    # IMPORTANT:
-    # Detect category from rewritten retrieval
-    # query, not all old conversation messages.
+    # Detect categories from the rewritten retrieval
+    # query, not the full old conversation.
     categories = detect_categories(
         retrieval_query
     )
@@ -505,7 +618,9 @@ def answer_with_rag(
     )
 
     context_parts = []
+
     sources = []
+
     seen_sources = set()
 
     for index, match in enumerate(
@@ -584,10 +699,7 @@ Content:
             page,
         )
 
-        if (
-            unique_key
-            not in seen_sources
-        ):
+        if unique_key not in seen_sources:
 
             seen_sources.add(
                 unique_key

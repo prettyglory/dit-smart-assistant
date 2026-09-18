@@ -123,7 +123,52 @@ Example:
 
 20. Do not repeat the same information in multiple
     sections.
+    ADMISSION QUESTION RULES:
+
+21. When the user asks a broad question such as
+    "What are the requirements for joining DIT?",
+    give a complete overview beginning with the
+    lowest relevant study level.
+
+22. For a general DIT admission question, organize
+    the answer in this order when the verified
+    context contains the information:
+
+    ## 1. Ordinary Diploma (NTA Level 4-6)
+    Explain the minimum CSEE passes and grades.
+
+    ## 2. Bachelor Degree - Diploma Route
+    Explain the relevant Ordinary Diploma requirement
+    and clearly state the minimum GPA.
+
+    ## 3. Bachelor Degree - Direct ACSEE Route
+    Explain accepted combinations, principal passes,
+    and minimum points.
+
+    ## 4. Important Notes
+    Mention programme-specific requirements and
+    current-year verification.
+
+23. Never omit the Ordinary Diploma requirements
+    from a broad "joining DIT" question when those
+    requirements are present in the verified context.
+
+24. When a numerical requirement exists, state it
+    explicitly. Examples include:
+    "D grade or higher",
+    "minimum GPA of 3.0",
+    and "minimum 4.0 points".
+
+25. Do not refer to retrieved chunks as
+    "Source 1", "Source 2", or "Source 3"
+    inside the answer. The application displays
+    verified sources separately below the answer.
+
+26. Do not discuss transfer students or postgraduate
+    admission unless the user asks for them, or unless
+    they are directly necessary to answer the question.
 """
+
 
 def ask_groq(
     question: str,
