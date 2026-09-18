@@ -65,17 +65,33 @@ function App() {
       return;
     }
 
+
+    // Keep only recent conversation messages.
+    // These are sent to FastAPI so follow-up
+    // questions can understand previous context.
+    const history = messages
+      .slice(-6)
+      .map((message) => ({
+        role: message.role,
+        content: message.text,
+      }));
+
+
+    const userMessage = {
+      role: "user",
+      text: question,
+      sources: [],
+    };
+
+
     setMessages((current) => [
       ...current,
-      {
-        role: "user",
-        text: question,
-        sources: [],
-      },
+      userMessage,
     ]);
 
     setInput("");
     setLoading(true);
+
 
     try {
       const response =
@@ -83,20 +99,29 @@ function App() {
           `${API_URL}/api/chat`,
           {
             message: question,
+            history: history,
           }
         );
 
+
+      const assistantMessage = {
+        role: "assistant",
+        text: response.data.answer,
+        sources:
+          response.data.sources || [],
+      };
+
+
       setMessages((current) => [
         ...current,
-        {
-          role: "assistant",
-          text: response.data.answer,
-          sources:
-            response.data.sources || [],
-        },
+        assistantMessage,
       ]);
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Chat request failed:",
+        error
+      );
+
 
       setMessages((current) => [
         ...current,
@@ -136,6 +161,7 @@ function App() {
       !event.shiftKey
     ) {
       event.preventDefault();
+
       sendMessage();
     }
   };
@@ -153,6 +179,7 @@ function App() {
             alt="Dar es Salaam Institute of Technology logo"
             className="dit-logo"
           />
+
 
           <div className="brand-text">
 
@@ -290,6 +317,7 @@ function App() {
                       <strong>
                         Verified Sources
                       </strong>
+
 
                       {message.sources.map(
                         (

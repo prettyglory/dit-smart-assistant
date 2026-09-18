@@ -47,6 +47,7 @@ IMPORTANT RULES:
 def ask_groq(
     question: str,
     context: str = "",
+    conversation_history: str = "",
 ) -> str:
 
     prompt = f"""
@@ -54,29 +55,53 @@ VERIFIED DIT CONTEXT:
 
 {context if context else "No verified context was retrieved."}
 
-USER QUESTION:
+
+RECENT CONVERSATION:
+
+{
+    conversation_history
+    if conversation_history
+    else "No previous conversation."
+}
+
+
+CURRENT USER QUESTION:
 
 {question}
 
-Answer according to the verified context and rules.
+
+INSTRUCTIONS:
+
+Use the recent conversation only to understand
+what the user is referring to.
+
+For factual information about DIT, rely only on
+the VERIFIED DIT CONTEXT.
+
+Do not invent missing information.
+
+If the current question is a follow-up such as
+"what about Mwanza?" or "and the fees?",
+use the conversation history to understand
+the subject of the follow-up.
+
+Answer in the same language used by the user.
 """
 
-    completion = (
-        client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT,
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ],
-            temperature=0.1,
-            max_tokens=700,
-        )
+    completion = client.chat.completions.create(
+        model="openai/gpt-oss-120b",
+        messages=[
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT,
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ],
+        temperature=0.1,
+        max_tokens=700,
     )
 
     return (

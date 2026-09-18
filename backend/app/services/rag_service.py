@@ -243,11 +243,109 @@ def detect_categories(
     return list(
         dict.fromkeys(categories)
     )
+def build_retrieval_query(
+    question: str,
+    history: list[dict],
+) -> str:
+    """
+    Combine recent user questions with the current
+    question so short follow-ups can be understood.
+    """
 
+    recent_user_messages = []
+
+    for message in history[-6:]:
+
+        if message.get("role") == "user":
+
+            content = message.get(
+                "content",
+                ""
+            ).strip()
+
+            if content:
+                recent_user_messages.append(
+                    content
+                )
+
+    recent_user_messages = (
+        recent_user_messages[-3:]
+    )
+
+    parts = (
+        recent_user_messages
+        + [question]
+    )
+
+    return "\n".join(parts)
+
+
+def format_conversation_history(
+    history: list[dict],
+) -> str:
+
+    lines = []
+
+    for message in history[-6:]:
+
+        role = message.get(
+            "role",
+            ""
+        )
+
+        content = message.get(
+            "content",
+            ""
+        ).strip()
+
+        if not content:
+            continue
+
+        if role == "user":
+            label = "Student"
+
+        elif role == "assistant":
+            label = "DIT Assistant"
+
+        else:
+            continue
+
+        lines.append(
+            f"{label}: {content}"
+        )
+
+    return "\n".join(lines)
 
 def answer_with_rag(
     question: str,
+    history: list[dict] | None = None,
 ):
+    history = history or []
+
+    retrieval_query = build_retrieval_query(
+        question=question,
+        history=history,
+    )
+
+    conversation_history = (
+        format_conversation_history(
+            history
+        )
+    )
+
+    categories = detect_categories(
+        retrieval_query
+    )
+
+    matches = search_knowledge(
+        question=retrieval_query,
+        n_results=8,
+        categories=(
+            categories
+            if categories
+            else None
+        ),
+    )
     """
     Retrieve relevant DIT information and
     send it to Groq to generate the answer.
@@ -374,8 +472,9 @@ Content:
     )
 
     answer = ask_groq(
-        question=question,
-        context=context,
-    )
+    question=question,
+    context=context,
+    conversation_history=conversation_history,
+)
 
     return answer, sources

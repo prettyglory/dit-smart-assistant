@@ -42,8 +42,14 @@ def health():
 )
 def chat(request: ChatRequest):
 
+    history = [
+        message.model_dump()
+        for message in request.history
+    ]
+
     answer, sources = answer_with_rag(
-        request.message
+        question=request.message,
+        history=history,
     )
 
     return ChatResponse(
