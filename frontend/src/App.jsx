@@ -33,8 +33,8 @@ const initialMessage = {
 const suggestedQuestions = [
   "DIT ina campuses ngapi?",
   "What programmes does DIT offer?",
+  "What are the requirements for joining DIT?",
   "How much is Bachelor tuition fee?",
-  "Who gets priority for hostel accommodation?",
 ];
 
 
@@ -48,11 +48,9 @@ function App() {
   const [loading, setLoading] =
     useState(false);
 
-  // Voice input
   const [isListening, setIsListening] =
     useState(false);
 
-  // Text-to-speech
   const [speakingIndex, setSpeakingIndex] =
     useState(null);
 
@@ -61,6 +59,9 @@ function App() {
     useRef(null);
 
   const recognitionRef =
+    useRef(null);
+
+  const textareaRef =
     useRef(null);
 
 
@@ -73,6 +74,29 @@ function App() {
       behavior: "smooth",
     });
   }, [messages, loading]);
+
+
+  // =====================================
+  // AUTO RESIZE TEXTAREA
+  // =====================================
+
+  useEffect(() => {
+    const textarea =
+      textareaRef.current;
+
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height =
+      "auto";
+
+    textarea.style.height =
+      `${Math.min(
+        textarea.scrollHeight,
+        150
+      )}px`;
+  }, [input]);
 
 
   // =====================================
@@ -112,7 +136,6 @@ function App() {
     }
 
 
-    // Stop microphone if currently listening
     if (isListening) {
       recognitionRef.current?.stop();
 
@@ -124,14 +147,9 @@ function App() {
       new SpeechRecognition();
 
 
-    /*
-      Use browser/device language automatically.
-      No SW/EN selector is shown in the interface.
-    */
     recognition.lang =
       navigator.language ||
       "en-US";
-
 
     recognition.continuous =
       false;
@@ -179,7 +197,6 @@ function App() {
         "Speech recognition error:",
         event.error
       );
-
 
       setIsListening(false);
 
@@ -229,7 +246,7 @@ function App() {
 
 
   // =====================================
-  // CLEAN MARKDOWN FOR SPEAKER
+  // CLEAN TEXT FOR SPEAKER
   // =====================================
 
   const cleanTextForSpeech = (
@@ -251,44 +268,42 @@ function App() {
 
 
   // =====================================
-  // DETECT LANGUAGE FOR SPEAKER
+  // LANGUAGE DETECTION FOR SPEAKER
   // =====================================
 
   const detectSpeechLanguage = (
     text
   ) => {
     const lower =
-      text.toLowerCase();
+      ` ${text.toLowerCase()} `;
 
 
     const swahiliWords = [
       " kwa ",
       " ya ",
       " ni ",
+      " na ",
       " katika ",
-      " wanafunzi",
-      " kujiunga",
-      " ada",
-      " masomo",
-      " chuo",
-      " kampasi",
-      " sifa",
-      " tafadhali",
-      " mwanafunzi",
-      " programu",
-      " unaweza",
-      " zinazotolewa",
+      " mwanafunzi ",
+      " wanafunzi ",
+      " kujiunga ",
+      " ada ",
+      " masomo ",
+      " chuo ",
+      " kampasi ",
+      " sifa ",
+      " unaweza ",
+      " programu ",
+      " taarifa ",
+      " kuhusu ",
+      " tafadhali ",
     ];
-
-
-    const paddedText =
-      ` ${lower} `;
 
 
     const hasSwahili =
       swahiliWords.some(
         (word) =>
-          paddedText.includes(word)
+          lower.includes(word)
       );
 
 
@@ -320,7 +335,6 @@ function App() {
     }
 
 
-    // Same button = stop
     if (
       speakingIndex === index
     ) {
@@ -332,7 +346,6 @@ function App() {
     }
 
 
-    // Stop previous speech
     window.speechSynthesis.cancel();
 
 
@@ -450,13 +463,11 @@ function App() {
     }
 
 
-    // Stop microphone
     if (isListening) {
       recognitionRef.current?.stop();
     }
 
 
-    // Stop speaker
     if (
       "speechSynthesis"
       in window
@@ -572,7 +583,9 @@ function App() {
 
 
   const sendMessage = () => {
-    sendQuestion(input);
+    sendQuestion(
+      input
+    );
   };
 
 
@@ -665,7 +678,9 @@ function App() {
   return (
     <div className="app">
 
-      {/* ================= HEADER ================= */}
+      {/* =====================================
+          HEADER
+          ===================================== */}
 
       <header className="header">
 
@@ -726,11 +741,15 @@ function App() {
       </header>
 
 
-      {/* ================= CHAT ================= */}
+      {/* =====================================
+          MAIN CHAT
+          ===================================== */}
 
       <main className="chat-container">
 
-        {/* ================= WELCOME ================= */}
+        {/* =====================================
+            WELCOME
+            ===================================== */}
 
         <div className="welcome">
 
@@ -771,7 +790,9 @@ function App() {
         </div>
 
 
-        {/* ================= MESSAGES ================= */}
+        {/* =====================================
+            MESSAGES
+            ===================================== */}
 
         <div className="messages">
 
@@ -790,6 +811,8 @@ function App() {
 
                 <div className="message">
 
+                  {/* Message label */}
+
                   <div className="message-label">
 
                     {message.role ===
@@ -799,6 +822,8 @@ function App() {
 
                   </div>
 
+
+                  {/* Message content */}
 
                   <div className="message-text">
 
@@ -818,7 +843,9 @@ function App() {
                   </div>
 
 
-                  {/* =============== SOURCES =============== */}
+                  {/* =====================================
+                      VERIFIED SOURCES
+                      ===================================== */}
 
                   {message.sources?.length >
                     0 && (
@@ -913,7 +940,9 @@ function App() {
                   )}
 
 
-                  {/* =============== SPEAKER =============== */}
+                  {/* =====================================
+                      SPEAKER
+                      ===================================== */}
 
                   {message.role ===
                     "assistant" &&
@@ -941,12 +970,65 @@ function App() {
                             ? "Stop reading"
                             : "Read answer aloud"
                         }
+                        aria-label={
+                          speakingIndex ===
+                          index
+                            ? "Stop reading"
+                            : "Read answer aloud"
+                        }
                       >
 
                         {speakingIndex ===
-                        index
-                          ? "⏹ Stop"
-                          : "🔊 Listen"}
+                        index ? (
+
+                          <>
+                            <span>
+                              ■
+                            </span>
+
+                            <span>
+                              Stop
+                            </span>
+                          </>
+
+                        ) : (
+
+                          <>
+                            {/* Speaker icon */}
+
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="18"
+                              height="18"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+
+                              <polygon
+                                points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+                              />
+
+                              <path
+                                d="M15.54 8.46a5 5 0 0 1 0 7.07"
+                              />
+
+                              <path
+                                d="M19.07 4.93a10 10 0 0 1 0 14.14"
+                              />
+
+                            </svg>
+
+
+                            <span>
+                              Listen
+                            </span>
+                          </>
+
+                        )}
 
                       </button>
 
@@ -955,7 +1037,9 @@ function App() {
                   )}
 
 
-                  {/* =============== FEEDBACK =============== */}
+                  {/* =====================================
+                      FEEDBACK
+                      ===================================== */}
 
                   {message.role ===
                     "assistant" &&
@@ -969,6 +1053,7 @@ function App() {
 
 
                       <button
+                        type="button"
                         className={
                           message.feedback ===
                           "positive"
@@ -989,6 +1074,7 @@ function App() {
 
 
                       <button
+                        type="button"
                         className={
                           message.feedback ===
                           "negative"
@@ -1028,7 +1114,9 @@ function App() {
           )}
 
 
-          {/* ================= LOADING ================= */}
+          {/* =====================================
+              LOADING
+              ===================================== */}
 
           {loading && (
 
@@ -1059,7 +1147,9 @@ function App() {
         </div>
 
 
-        {/* ================= DISCLAIMER ================= */}
+        {/* =====================================
+            DISCLAIMER
+            ===================================== */}
 
         <div className="disclaimer">
 
@@ -1074,13 +1164,18 @@ function App() {
         </div>
 
 
-        {/* ================= INPUT ================= */}
+        {/* =====================================
+            CHAT COMPOSER
+            ===================================== */}
 
         <div className="input-area">
 
           <div className="composer">
 
+            {/* Text input */}
+
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(event) =>
                 setInput(
@@ -1095,13 +1190,17 @@ function App() {
                   ? "Listening..."
                   : "Ask anything about DIT..."
               }
-              rows="2"
+              rows="1"
             />
 
 
+            {/* Right side actions */}
+
             <div className="composer-actions">
 
-              {/* Normal outline microphone */}
+              {/* =====================================
+                  MICROPHONE
+                  ===================================== */}
 
               <button
                 type="button"
@@ -1119,7 +1218,11 @@ function App() {
                     ? "Stop listening"
                     : "Use voice"
                 }
-                aria-label="Use microphone"
+                aria-label={
+                  isListening
+                    ? "Stop listening"
+                    : "Use microphone"
+                }
               >
 
                 {isListening ? (
@@ -1132,8 +1235,8 @@ function App() {
 
                   <svg
                     viewBox="0 0 24 24"
-                    width="21"
-                    height="21"
+                    width="22"
+                    height="22"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -1155,11 +1258,11 @@ function App() {
                     />
 
                     <path
-                      d="M12 17v5"
+                      d="M12 17v4"
                     />
 
                     <path
-                      d="M8 22h8"
+                      d="M9 21h6"
                     />
 
                   </svg>
@@ -1169,7 +1272,9 @@ function App() {
               </button>
 
 
-              {/* Send */}
+              {/* =====================================
+                  SEND
+                  ===================================== */}
 
               <button
                 type="button"
@@ -1181,8 +1286,32 @@ function App() {
                   loading ||
                   !input.trim()
                 }
+                aria-label="Send message"
+                title="Send"
               >
-                Send
+
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+
+                  <path
+                    d="M12 19V5"
+                  />
+
+                  <path
+                    d="M6 11l6-6 6 6"
+                  />
+
+                </svg>
+
               </button>
 
             </div>

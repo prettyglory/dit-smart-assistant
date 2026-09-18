@@ -2,6 +2,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
@@ -14,6 +21,10 @@ textarea {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 .app {
   min-height: 100vh;
 }
@@ -24,7 +35,8 @@ textarea {
    ======================================== */
 
 .header {
-  min-height: 105px;
+  min-height: 100px;
+
   padding: 12px 32px;
 
   display: flex;
@@ -38,18 +50,25 @@ textarea {
   box-shadow:
     0 2px 10px
     rgba(0, 0, 0, 0.06);
+
+  position: relative;
+  z-index: 20;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 15px;
+
+  gap: 14px;
 }
 
 .dit-logo {
-  width: 75px;
-  height: 75px;
+  width: 72px;
+  height: 72px;
+
   object-fit: contain;
+
+  flex-shrink: 0;
 }
 
 .brand-text h1 {
@@ -57,7 +76,8 @@ textarea {
 
   color: #143a78;
 
-  font-size: 25px;
+  font-size: 24px;
+  line-height: 1.2;
 }
 
 .brand-text p {
@@ -71,9 +91,9 @@ textarea {
 .certification {
   display: inline-block;
 
-  margin-top: 3px;
+  padding: 3px 9px;
 
-  padding: 4px 9px;
+  margin-top: 2px;
 
   border-radius: 12px;
 
@@ -88,17 +108,19 @@ textarea {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 18px;
+
+  gap: 14px;
 }
 
 .status {
   display: flex;
   align-items: center;
-  gap: 7px;
 
-  font-size: 13px;
+  gap: 6px;
 
   color: #4b5563;
+
+  font-size: 13px;
 }
 
 .status-dot {
@@ -111,38 +133,34 @@ textarea {
 }
 
 .clear-button {
+  padding: 8px 13px;
+
   border: 1px solid #cfd8e6;
   border-radius: 10px;
 
-  padding: 8px 13px;
-
-  background: white;
+  background: #ffffff;
 
   color: #143a78;
 
   font-size: 13px;
   font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s,
-    border-color 0.2s;
 }
 
 .clear-button:hover {
   background: #edf4ff;
+
   border-color: #143a78;
 }
 
 .clear-button:disabled {
   opacity: 0.5;
+
   cursor: not-allowed;
 }
 
 
 /* ========================================
-   CHAT CONTAINER
+   MAIN CHAT
    ======================================== */
 
 .chat-container {
@@ -150,12 +168,9 @@ textarea {
 
   margin: 0 auto;
 
-  min-height: calc(100vh - 105px);
+  padding: 24px 24px 150px;
 
-  padding: 25px;
-
-  display: flex;
-  flex-direction: column;
+  min-height: calc(100vh - 100px);
 }
 
 
@@ -164,13 +179,14 @@ textarea {
    ======================================== */
 
 .welcome {
-  text-align: center;
+  margin-bottom: 26px;
 
-  margin-bottom: 30px;
+  text-align: center;
 }
 
 .welcome h2 {
-  margin: 0 0 5px;
+  margin:
+    0 0 7px;
 
   color: #143a78;
 
@@ -178,9 +194,11 @@ textarea {
 }
 
 .welcome p {
-  margin-top: 0;
+  margin: 0;
 
   color: #6b7280;
+
+  font-size: 15px;
 }
 
 .suggestions {
@@ -194,27 +212,36 @@ textarea {
 }
 
 .suggestion-button {
-  border: 1px solid #d7deea;
+  padding: 8px 14px;
 
+  border: 1px solid #d7deea;
   border-radius: 20px;
 
-  background: white;
-
-  padding: 8px 14px;
+  background: #ffffff;
 
   color: #143a78;
 
-  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
 
   transition:
     background 0.2s,
-    border-color 0.2s;
+    border-color 0.2s,
+    transform 0.15s;
 }
 
 .suggestion-button:hover {
+  background: #edf4ff;
+
   border-color: #143a78;
 
-  background: #edf4ff;
+  transform: translateY(-1px);
+}
+
+.suggestion-button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
 }
 
 
@@ -223,12 +250,12 @@ textarea {
    ======================================== */
 
 .messages {
-  flex: 1;
-
-  padding-bottom: 145px;
+  width: 100%;
 }
 
 .message-row {
+  width: 100%;
+
   display: flex;
 
   margin-bottom: 18px;
@@ -243,13 +270,11 @@ textarea {
 }
 
 .message {
-  max-width: 92%;
+  max-width: 88%;
 
-  padding: 16px 20px;
+  padding: 15px 18px;
 
   border-radius: 16px;
-
-  line-height: 1.6;
 }
 
 .user .message {
@@ -257,25 +282,21 @@ textarea {
 
   background: #143a78;
 
-  color: white;
+  color: #ffffff;
 }
 
 .assistant .message {
-  width: auto;
-
-  background: white;
+  background: #ffffff;
 
   border: 1px solid #e5e7eb;
 
   box-shadow:
     0 2px 8px
     rgba(0, 0, 0, 0.03);
-
-  text-align: left;
 }
 
 .message-label {
-  margin-bottom: 10px;
+  margin-bottom: 9px;
 
   font-size: 13px;
   font-weight: 700;
@@ -286,24 +307,22 @@ textarea {
 }
 
 .assistant .message-label {
-  text-align: left;
-
   color: #111827;
 }
 
 
 /* ========================================
-   ASSISTANT MARKDOWN FORMATTING
+   ASSISTANT ANSWER
    ======================================== */
 
 .assistant .message-text {
+  color: #172033;
+
   text-align: left;
 
   font-size: 16px;
 
   line-height: 1.7;
-
-  color: #172033;
 }
 
 .assistant .message-text p {
@@ -313,74 +332,46 @@ textarea {
 .assistant .message-text h1 {
   margin: 22px 0 12px;
 
-  font-size: 21px;
-
-  line-height: 1.35;
-
-  font-weight: 700;
-
   color: #111827;
 
-  text-align: left;
+  font-size: 21px;
+  line-height: 1.35;
 }
 
 .assistant .message-text h2 {
-  margin: 24px 0 12px;
-
-  font-size: 20px;
-
-  line-height: 1.35;
-
-  font-weight: 700;
+  margin: 22px 0 12px;
 
   color: #111827;
 
-  text-align: left;
+  font-size: 20px;
+  line-height: 1.35;
 }
 
 .assistant .message-text h3 {
-  margin: 20px 0 10px;
-
-  font-size: 17px;
-
-  line-height: 1.4;
-
-  font-weight: 700;
+  margin: 18px 0 10px;
 
   color: #111827;
 
-  text-align: left;
+  font-size: 17px;
 }
 
 .assistant .message-text ul,
 .assistant .message-text ol {
   margin: 10px 0 18px;
 
-  padding-left: 28px;
+  padding-left: 27px;
 }
 
 .assistant .message-text li {
-  margin-bottom: 10px;
+  margin-bottom: 9px;
 
-  padding-left: 4px;
-
-  line-height: 1.7;
-}
-
-.assistant .message-text li ul,
-.assistant .message-text li ol {
-  margin-top: 8px;
-  margin-bottom: 6px;
+  line-height: 1.65;
 }
 
 .assistant .message-text strong {
-  font-weight: 700;
-
   color: #111827;
-}
 
-.assistant .message-text em {
-  color: #374151;
+  font-weight: 700;
 }
 
 .assistant .message-text a {
@@ -389,34 +380,27 @@ textarea {
   font-weight: 600;
 
   text-decoration: underline;
-
-  text-underline-offset: 2px;
 }
 
 .assistant .message-text > *:last-child {
   margin-bottom: 0;
 }
 
-
-/* User message */
-
 .user .message-text {
   white-space: pre-wrap;
-
-  font-size: 16px;
 
   line-height: 1.55;
 }
 
 
 /* ========================================
-   VERIFIED SOURCES
+   SOURCES
    ======================================== */
 
 .sources {
-  margin-top: 18px;
+  margin-top: 17px;
 
-  padding-top: 14px;
+  padding-top: 13px;
 
   border-top: 1px solid #e5e7eb;
 
@@ -426,21 +410,17 @@ textarea {
 .sources > strong {
   display: block;
 
-  margin-bottom: 8px;
-
-  color: #111827;
-
-  font-size: 13px;
+  margin-bottom: 7px;
 }
 
 .source {
-  margin-top: 10px;
+  margin-top: 8px;
 
   padding: 8px 10px;
 
-  background: #f8fafc;
-
   border-radius: 8px;
+
+  background: #f8fafc;
 }
 
 .source a {
@@ -470,13 +450,40 @@ textarea {
 
 
 /* ========================================
-   TYPING INDICATOR
+   SPEAKER
    ======================================== */
 
-.typing {
-  color: #6b7280;
+.assistant-actions {
+  margin-top: 12px;
+}
 
-  font-style: italic;
+.speaker-button {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 6px 10px;
+
+  border: 1px solid #d9e0ea;
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  color: #143a78;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.speaker-button:hover {
+  background: #edf4ff;
+}
+
+.speaker-button.speaking {
+  background: #dce9ff;
+
+  border-color: #143a78;
 }
 
 
@@ -485,7 +492,7 @@ textarea {
    ======================================== */
 
 .feedback-area {
-  margin-top: 14px;
+  margin-top: 12px;
 
   padding-top: 10px;
 
@@ -499,8 +506,6 @@ textarea {
 }
 
 .feedback-label {
-  margin-right: 3px;
-
   color: #6b7280;
 
   font-size: 12px;
@@ -510,28 +515,20 @@ textarea {
   width: 34px;
   height: 30px;
 
-  border: 1px solid #d9e0ea;
+  padding: 0;
 
+  border: 1px solid #d9e0ea;
   border-radius: 9px;
 
   background: #ffffff;
 
-  cursor: pointer;
-
   font-size: 15px;
-
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    transform 0.1s;
 }
 
 .feedback-button:hover {
   background: #edf4ff;
 
   border-color: #143a78;
-
-  transform: translateY(-1px);
 }
 
 .feedback-button.active {
@@ -546,6 +543,12 @@ textarea {
   font-size: 11px;
 }
 
+.typing {
+  color: #6b7280;
+
+  font-style: italic;
+}
+
 
 /* ========================================
    DISCLAIMER
@@ -554,9 +557,9 @@ textarea {
 .disclaimer {
   max-width: 720px;
 
-  margin: 10px auto 115px;
+  margin: 25px auto 20px;
 
-  padding: 12px 16px;
+  padding: 10px 12px;
 
   text-align: center;
 
@@ -569,55 +572,62 @@ textarea {
 
 
 /* ========================================
-   INPUT
+   FIXED INPUT AREA
    ======================================== */
 
 .input-area {
   position: fixed;
 
-  bottom: 0;
-
   left: 50%;
+  bottom: 0;
 
   transform: translateX(-50%);
 
   width: min(960px, 100%);
 
-  padding: 18px 25px 25px;
+  padding: 12px 20px 20px;
 
-  display: flex;
-
-  gap: 10px;
+  z-index: 100;
 
   background:
     linear-gradient(
       to top,
-      #f4f7fb 82%,
-      transparent
+      #f4f7fb 78%,
+      rgba(244, 247, 251, 0)
     );
 }
 
-.input-area textarea {
-  flex: 1;
 
-  min-height: 55px;
+/* ONE BOX */
 
-  padding: 13px 15px;
+.input-area .composer {
+  width: 100%;
 
-  resize: none;
+  min-height: 58px;
 
-  outline: none;
+  display: flex;
+  flex-direction: row;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding:
+    7px 8px
+    7px 18px;
+
+  background: #ffffff;
 
   border: 1px solid #cfd8e6;
 
-  border-radius: 16px;
+  border-radius: 30px;
 
-  background: white;
-
-  line-height: 1.45;
+  box-shadow:
+    0 2px 12px
+    rgba(0, 0, 0, 0.08);
 }
 
-.input-area textarea:focus {
+.input-area .composer:focus-within {
   border-color: #143a78;
 
   box-shadow:
@@ -625,30 +635,165 @@ textarea {
     rgba(20, 58, 120, 0.08);
 }
 
-.input-area button {
+
+/* TEXTAREA */
+
+.input-area .composer textarea {
+  flex: 1 1 auto;
+
+  width: auto;
+  min-width: 0;
+
+  height: 42px;
+  min-height: 42px;
+  max-height: 130px;
+
+  margin: 0;
+
+  padding: 10px 4px;
+
   border: none;
 
-  border-radius: 14px;
+  border-radius: 0;
 
-  padding: 0 25px;
+  outline: none;
+
+  resize: none;
+
+  overflow-y: auto;
+
+  background: transparent;
+
+  box-shadow: none;
+
+  color: #1f2937;
+
+  font-size: 16px;
+
+  line-height: 22px;
+}
+
+.input-area .composer textarea:focus {
+  border: none;
+
+  outline: none;
+
+  box-shadow: none;
+}
+
+.input-area .composer textarea::placeholder {
+  color: #8b8f98;
+}
+
+
+/* ACTIONS */
+
+.composer-actions {
+  flex: 0 0 auto;
+
+  display: flex;
+  flex-direction: row;
+
+  align-items: center;
+
+  gap: 6px;
+}
+
+
+/* ========================================
+   MICROPHONE
+   ======================================== */
+
+.voice-button {
+  width: 40px;
+  height: 40px;
+
+  flex: 0 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding: 0;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: #1f2937;
+}
+
+.voice-button:hover {
+  background: #f0f2f5;
+}
+
+.voice-button:active {
+  transform: scale(0.94);
+}
+
+.voice-button:disabled {
+  opacity: 0.4;
+
+  cursor: not-allowed;
+}
+
+.voice-button.listening {
+  background: #fee2e2;
+
+  color: #dc2626;
+}
+
+.voice-stop {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 2px;
+
+  background: #dc2626;
+}
+
+
+/* ========================================
+   SEND BUTTON
+   ======================================== */
+
+.send-button {
+  width: 40px;
+  height: 40px;
+
+  flex: 0 0 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0;
+  padding: 0;
+
+  border: none;
+
+  border-radius: 50%;
 
   background: #143a78;
 
-  color: white;
-
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition: background 0.2s;
+  color: #ffffff;
 }
 
-.input-area button:hover {
+.send-button:hover {
   background: #0d2c60;
 }
 
-.input-area button:disabled {
-  opacity: 0.5;
+.send-button:active {
+  transform: scale(0.94);
+}
+
+.send-button:disabled {
+  background: #9eacc5;
+
+  color: #ffffff;
 
   cursor: not-allowed;
 }
@@ -659,19 +804,20 @@ textarea {
    ======================================== */
 
 @media (max-width: 650px) {
+
   .header {
     min-height: 82px;
 
-    padding: 10px 14px;
-  }
-
-  .dit-logo {
-    width: 58px;
-    height: 58px;
+    padding: 9px 12px;
   }
 
   .brand {
-    gap: 10px;
+    gap: 9px;
+  }
+
+  .dit-logo {
+    width: 55px;
+    height: 55px;
   }
 
   .brand-text h1 {
@@ -684,8 +830,6 @@ textarea {
 
   .certification {
     font-size: 9px;
-
-    padding: 3px 7px;
   }
 
   .status {
@@ -693,27 +837,39 @@ textarea {
   }
 
   .header-actions {
-    gap: 8px;
+    gap: 6px;
   }
 
   .clear-button {
-    padding: 7px 9px;
+    padding: 6px 8px;
 
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .chat-container {
-    padding: 14px;
+    padding:
+      16px 12px
+      135px;
+  }
+
+  .welcome {
+    margin-bottom: 20px;
   }
 
   .welcome h2 {
     font-size: 21px;
   }
 
+  .suggestion-button {
+    padding: 7px 11px;
+
+    font-size: 12px;
+  }
+
   .message {
     max-width: 97%;
 
-    padding: 14px 16px;
+    padding: 13px 15px;
   }
 
   .user .message {
@@ -722,202 +878,47 @@ textarea {
 
   .assistant .message-text {
     font-size: 15px;
-
-    line-height: 1.65;
   }
 
   .assistant .message-text h1,
   .assistant .message-text h2 {
-    font-size: 19px;
-
-    margin-top: 20px;
-  }
-
-  .assistant .message-text h3 {
-    font-size: 16px;
-  }
-
-  .assistant .message-text ul,
-  .assistant .message-text ol {
-    padding-left: 24px;
-  }
-
-  .assistant .message-text li {
-    margin-bottom: 9px;
-  }
-
-  .input-area {
-    padding: 12px 14px 18px;
-  }
-
-  .input-area button {
-    padding: 0 18px;
-  }
-
-  .disclaimer {
-    margin-bottom: 110px;
-
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-}
-/* ========================================
-   VOICE INPUT
-   ======================================== */
-
-.voice-language {
-  width: 58px;
-
-  border: 1px solid #cfd8e6;
-  border-radius: 12px;
-
-  background: #ffffff;
-
-  color: #143a78;
-
-  font-weight: 700;
-
-  text-align: center;
-
-  outline: none;
-
-  cursor: pointer;
-}
-
-
-.voice-language:focus {
-  border-color: #143a78;
-}
-
-
-.mic-button {
-  width: 52px;
-  min-width: 52px;
-
-  padding: 0 !important;
-
-  border: 1px solid #cfd8e6 !important;
-
-  background: #ffffff !important;
-
-  color: #143a78 !important;
-
-  font-size: 20px;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s,
-    border-color 0.2s,
-    transform 0.2s;
-}
-
-
-.mic-button:hover {
-  background: #edf4ff !important;
-
-  border-color: #143a78 !important;
-}
-
-
-.mic-button.listening {
-  background: #fee2e2 !important;
-
-  border-color: #dc2626 !important;
-
-  animation:
-    microphonePulse 1.2s
-    infinite;
-}
-
-
-@keyframes microphonePulse {
-
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.06);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-
-/* ========================================
-   SPEAKER
-   ======================================== */
-
-.assistant-actions {
-  margin-top: 14px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-}
-
-
-.speaker-button {
-  padding: 6px 11px;
-
-  border: 1px solid #d9e0ea;
-
-  border-radius: 9px;
-
-  background: #ffffff;
-
-  color: #143a78;
-
-  font-size: 12px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s,
-    border-color 0.2s;
-}
-
-
-.speaker-button:hover {
-  background: #edf4ff;
-
-  border-color: #143a78;
-}
-
-
-.speaker-button.speaking {
-  background: #dce9ff;
-
-  border-color: #143a78;
-}
-
-
-/* ========================================
-   MOBILE VOICE
-   ======================================== */
-
-@media (max-width: 650px) {
-
-  .voice-language {
-    width: 48px;
-
-    font-size: 12px;
-  }
-
-  .mic-button {
-    width: 46px;
-    min-width: 46px;
-
     font-size: 18px;
   }
 
-  .speaker-button {
-    font-size: 11px;
+  .input-area {
+    width: 100%;
+
+    padding:
+      9px 10px
+      13px;
+  }
+
+  .input-area .composer {
+    min-height: 54px;
+
+    padding:
+      6px 7px
+      6px 14px;
+
+    border-radius: 27px;
+  }
+
+  .input-area .composer textarea {
+    height: 40px;
+
+    min-height: 40px;
+
+    padding:
+      9px 2px;
+
+    font-size: 15px;
+  }
+
+  .voice-button,
+  .send-button {
+    width: 38px;
+    height: 38px;
+
+    flex-basis: 38px;
   }
 }
