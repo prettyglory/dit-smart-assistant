@@ -7,3 +7,4 @@ __pycache__/
 .idea/
 node_modules/
 dist/
+frontend/.env
