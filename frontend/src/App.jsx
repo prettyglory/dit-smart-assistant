@@ -16,13 +16,16 @@ const API_URL =
 
 const initialMessage = {
   role: "assistant",
+
   text:
     "Hello! Karibu DIT Smart Assistant 👋\n\n" +
     "You can ask me about **DIT campuses, programmes, " +
     "admissions, fees, accommodation, regulations, " +
     "IPT and academic information**.\n\n" +
     "Unaweza kuuliza kwa **English au Kiswahili**.",
+
   sources: [],
+
   feedback: null,
 };
 
@@ -49,12 +52,10 @@ function App() {
   const [isListening, setIsListening] =
     useState(false);
 
-  const [voiceLanguage, setVoiceLanguage] =
-    useState("sw-TZ");
-
-  // Speaker
+  // Text-to-speech
   const [speakingIndex, setSpeakingIndex] =
     useState(null);
+
 
   const messagesEndRef =
     useRef(null);
@@ -63,6 +64,10 @@ function App() {
     useRef(null);
 
 
+  // =====================================
+  // AUTO SCROLL
+  // =====================================
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
@@ -70,12 +75,17 @@ function App() {
   }, [messages, loading]);
 
 
-  // Stop microphone and speaker when component closes
+  // =====================================
+  // CLEAN UP VOICE SERVICES
+  // =====================================
+
   useEffect(() => {
     return () => {
       recognitionRef.current?.stop();
 
-      if ("speechSynthesis" in window) {
+      if (
+        "speechSynthesis" in window
+      ) {
         window.speechSynthesis.cancel();
       }
     };
@@ -91,6 +101,7 @@ function App() {
       window.SpeechRecognition ||
       window.webkitSpeechRecognition;
 
+
     if (!SpeechRecognition) {
       alert(
         "Voice recognition is not supported by this browser. " +
@@ -101,11 +112,9 @@ function App() {
     }
 
 
-    // Stop if already listening
+    // Stop microphone if currently listening
     if (isListening) {
       recognitionRef.current?.stop();
-
-      setIsListening(false);
 
       return;
     }
@@ -114,8 +123,15 @@ function App() {
     const recognition =
       new SpeechRecognition();
 
+
+    /*
+      Use browser/device language automatically.
+      No SW/EN selector is shown in the interface.
+    */
     recognition.lang =
-      voiceLanguage;
+      navigator.language ||
+      "en-US";
+
 
     recognition.continuous =
       false;
@@ -139,7 +155,20 @@ function App() {
         event.results[0][0]
           .transcript;
 
-      setInput(transcript);
+
+      setInput(
+        (currentInput) => {
+          if (
+            currentInput.trim()
+          ) {
+            return (
+              `${currentInput.trim()} ${transcript}`
+            );
+          }
+
+          return transcript;
+        }
+      );
     };
 
 
@@ -151,7 +180,9 @@ function App() {
         event.error
       );
 
+
       setIsListening(false);
+
 
       if (
         event.error ===
@@ -160,6 +191,16 @@ function App() {
         alert(
           "Microphone permission was denied. " +
           "Please allow microphone access in your browser."
+        );
+      }
+
+
+      if (
+        event.error ===
+        "no-speech"
+      ) {
+        console.log(
+          "No speech was detected."
         );
       }
     };
@@ -173,12 +214,22 @@ function App() {
     recognitionRef.current =
       recognition;
 
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error(
+        "Could not start microphone:",
+        error
+      );
+
+      setIsListening(false);
+    }
   };
 
 
   // =====================================
-  // SPEAKER / TEXT TO SPEECH
+  // CLEAN MARKDOWN FOR SPEAKER
   // =====================================
 
   const cleanTextForSpeech = (
@@ -189,12 +240,19 @@ function App() {
       .replace(/\*\*/g, "")
       .replace(/\*/g, "")
       .replace(/`/g, "")
-      .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+      .replace(
+        /\[(.*?)\]\(.*?\)/g,
+        "$1"
+      )
       .replace(/[-•]\s/g, "")
       .replace(/\n+/g, ". ")
       .trim();
   };
 
+
+  // =====================================
+  // DETECT LANGUAGE FOR SPEAKER
+  // =====================================
 
   const detectSpeechLanguage = (
     text
@@ -202,28 +260,35 @@ function App() {
     const lower =
       text.toLowerCase();
 
+
     const swahiliWords = [
-      "na ",
-      "kwa ",
-      "ya ",
-      "ni ",
-      "katika ",
-      "wanafunzi",
-      "kujiunga",
-      "ada",
-      "masomo",
-      "programu",
-      "chuo",
-      "kampasi",
-      "sifa",
-      "tafadhali",
+      " kwa ",
+      " ya ",
+      " ni ",
+      " katika ",
+      " wanafunzi",
+      " kujiunga",
+      " ada",
+      " masomo",
+      " chuo",
+      " kampasi",
+      " sifa",
+      " tafadhali",
+      " mwanafunzi",
+      " programu",
+      " unaweza",
+      " zinazotolewa",
     ];
+
+
+    const paddedText =
+      ` ${lower} `;
 
 
     const hasSwahili =
       swahiliWords.some(
         (word) =>
-          lower.includes(word)
+          paddedText.includes(word)
       );
 
 
@@ -232,6 +297,10 @@ function App() {
       : "en-US";
   };
 
+
+  // =====================================
+  // TEXT TO SPEECH
+  // =====================================
 
   const speakMessage = (
     text,
@@ -251,7 +320,7 @@ function App() {
     }
 
 
-    // Clicking same speaker stops it
+    // Same button = stop
     if (
       speakingIndex === index
     ) {
@@ -263,7 +332,7 @@ function App() {
     }
 
 
-    // Stop any previous speech
+    // Stop previous speech
     window.speechSynthesis.cancel();
 
 
@@ -271,6 +340,11 @@ function App() {
       cleanTextForSpeech(
         text
       );
+
+
+    if (!cleanText) {
+      return;
+    }
 
 
     const utterance =
@@ -298,10 +372,15 @@ function App() {
       1;
 
 
-    // Try to select matching browser voice
     const voices =
       window.speechSynthesis
         .getVoices();
+
+
+    const languagePrefix =
+      language
+        .split("-")[0]
+        .toLowerCase();
 
 
     const preferredVoice =
@@ -310,9 +389,7 @@ function App() {
           voice.lang
             .toLowerCase()
             .startsWith(
-              language
-                .split("-")[0]
-                .toLowerCase()
+              languagePrefix
             )
       );
 
@@ -364,6 +441,7 @@ function App() {
     const question =
       questionText.trim();
 
+
     if (
       !question ||
       loading
@@ -372,17 +450,20 @@ function App() {
     }
 
 
-    // Stop speaking when a new question is sent
+    // Stop microphone
+    if (isListening) {
+      recognitionRef.current?.stop();
+    }
+
+
+    // Stop speaker
     if (
       "speechSynthesis"
       in window
     ) {
-      window.speechSynthesis
-        .cancel();
+      window.speechSynthesis.cancel();
 
-      setSpeakingIndex(
-        null
-      );
+      setSpeakingIndex(null);
     }
 
 
@@ -402,8 +483,11 @@ function App() {
 
     const userMessage = {
       role: "user",
+
       text: question,
+
       sources: [],
+
       feedback: null,
     };
 
@@ -414,6 +498,7 @@ function App() {
         userMessage,
       ]
     );
+
 
     setInput("");
 
@@ -481,19 +566,19 @@ function App() {
         ]
       );
     } finally {
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   };
 
 
   const sendMessage = () => {
-    sendQuestion(
-      input
-    );
+    sendQuestion(input);
   };
 
+
+  // =====================================
+  // CLEAR CHAT
+  // =====================================
 
   const clearChat = () => {
     setMessages([
@@ -502,23 +587,27 @@ function App() {
 
     setInput("");
 
+
     recognitionRef.current?.stop();
 
     setIsListening(false);
+
 
     if (
       "speechSynthesis"
       in window
     ) {
-      window.speechSynthesis
-        .cancel();
+      window.speechSynthesis.cancel();
     }
 
-    setSpeakingIndex(
-      null
-    );
+
+    setSpeakingIndex(null);
   };
 
+
+  // =====================================
+  // FEEDBACK
+  // =====================================
 
   const handleFeedback = (
     messageIndex,
@@ -538,6 +627,7 @@ function App() {
               return message;
             }
 
+
             return {
               ...message,
 
@@ -552,6 +642,10 @@ function App() {
     );
   };
 
+
+  // =====================================
+  // ENTER TO SEND
+  // =====================================
 
   const handleKeyDown = (
     event
@@ -571,6 +665,8 @@ function App() {
   return (
     <div className="app">
 
+      {/* ================= HEADER ================= */}
+
       <header className="header">
 
         <div className="brand">
@@ -588,10 +684,12 @@ function App() {
               DIT Smart Assistant
             </h1>
 
+
             <p>
               Dar es Salaam Institute
               of Technology
             </p>
+
 
             <div className="certification">
               ISO 21001:2018 Certified
@@ -628,7 +726,11 @@ function App() {
       </header>
 
 
+      {/* ================= CHAT ================= */}
+
       <main className="chat-container">
+
+        {/* ================= WELCOME ================= */}
 
         <div className="welcome">
 
@@ -636,10 +738,10 @@ function App() {
             How can I help you?
           </h2>
 
+
           <p>
             Ask questions using
-            English, Kiswahili,
-            or your voice.
+            English or Kiswahili.
           </p>
 
 
@@ -668,6 +770,8 @@ function App() {
 
         </div>
 
+
+        {/* ================= MESSAGES ================= */}
 
         <div className="messages">
 
@@ -713,6 +817,8 @@ function App() {
 
                   </div>
 
+
+                  {/* =============== SOURCES =============== */}
 
                   {message.sources?.length >
                     0 && (
@@ -769,12 +875,14 @@ function App() {
                             <div className="source-meta">
 
                               {source.page && (
+
                                 <span>
                                   Page{" "}
                                   {
                                     source.page
                                   }
                                 </span>
+
                               )}
 
 
@@ -805,6 +913,8 @@ function App() {
                   )}
 
 
+                  {/* =============== SPEAKER =============== */}
+
                   {message.role ===
                     "assistant" &&
                     index !== 0 && (
@@ -812,6 +922,7 @@ function App() {
                     <div className="assistant-actions">
 
                       <button
+                        type="button"
                         className={
                           speakingIndex ===
                           index
@@ -844,6 +955,8 @@ function App() {
                   )}
 
 
+                  {/* =============== FEEDBACK =============== */}
+
                   {message.role ===
                     "assistant" &&
                     index !== 0 && (
@@ -868,6 +981,7 @@ function App() {
                             "positive"
                           )
                         }
+                        aria-label="Helpful answer"
                         title="Helpful"
                       >
                         👍
@@ -887,6 +1001,7 @@ function App() {
                             "negative"
                           )
                         }
+                        aria-label="Not helpful answer"
                         title="Not helpful"
                       >
                         👎
@@ -894,9 +1009,11 @@ function App() {
 
 
                       {message.feedback && (
+
                         <span className="feedback-thanks">
                           Thanks for your feedback.
                         </span>
+
                       )}
 
                     </div>
@@ -911,6 +1028,8 @@ function App() {
           )}
 
 
+          {/* ================= LOADING ================= */}
+
           {loading && (
 
             <div className="message-row assistant">
@@ -920,6 +1039,7 @@ function App() {
                 <div className="message-label">
                   DIT Assistant
                 </div>
+
 
                 <div className="typing">
                   Searching verified DIT information...
@@ -939,6 +1059,8 @@ function App() {
         </div>
 
 
+        {/* ================= DISCLAIMER ================= */}
+
         <div className="disclaimer">
 
           DIT Smart Assistant provides
@@ -952,82 +1074,120 @@ function App() {
         </div>
 
 
+        {/* ================= INPUT ================= */}
+
         <div className="input-area">
 
-          <select
-            className="voice-language"
-            value={voiceLanguage}
-            onChange={(event) =>
-              setVoiceLanguage(
-                event.target.value
-              )
-            }
-            title="Voice language"
-          >
-            <option value="sw-TZ">
-              SW
-            </option>
+          <div className="composer">
 
-            <option value="en-US">
-              EN
-            </option>
-          </select>
-
-
-          <button
-            type="button"
-            className={
-              isListening
-                ? "mic-button listening"
-                : "mic-button"
-            }
-            onClick={
-              startVoiceInput
-            }
-            disabled={loading}
-            title={
-              isListening
-                ? "Stop listening"
-                : "Speak your question"
-            }
-          >
-            {isListening
-              ? "⏹"
-              : "🎤"}
-          </button>
+            <textarea
+              value={input}
+              onChange={(event) =>
+                setInput(
+                  event.target.value
+                )
+              }
+              onKeyDown={
+                handleKeyDown
+              }
+              placeholder={
+                isListening
+                  ? "Listening..."
+                  : "Ask anything about DIT..."
+              }
+              rows="2"
+            />
 
 
-          <textarea
-            value={input}
-            onChange={(event) =>
-              setInput(
-                event.target.value
-              )
-            }
-            onKeyDown={
-              handleKeyDown
-            }
-            placeholder={
-              isListening
-                ? "Listening..."
-                : "Ask anything about DIT..."
-            }
-            rows="2"
-          />
+            <div className="composer-actions">
+
+              {/* Normal outline microphone */}
+
+              <button
+                type="button"
+                className={
+                  isListening
+                    ? "voice-button listening"
+                    : "voice-button"
+                }
+                onClick={
+                  startVoiceInput
+                }
+                disabled={loading}
+                title={
+                  isListening
+                    ? "Stop listening"
+                    : "Use voice"
+                }
+                aria-label="Use microphone"
+              >
+
+                {isListening ? (
+
+                  <span
+                    className="voice-stop"
+                  />
+
+                ) : (
+
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="21"
+                    height="21"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+
+                    <rect
+                      x="9"
+                      y="2"
+                      width="6"
+                      height="12"
+                      rx="3"
+                    />
+
+                    <path
+                      d="M5 10a7 7 0 0 0 14 0"
+                    />
+
+                    <path
+                      d="M12 17v5"
+                    />
+
+                    <path
+                      d="M8 22h8"
+                    />
+
+                  </svg>
+
+                )}
+
+              </button>
 
 
-          <button
-            className="send-button"
-            onClick={
-              sendMessage
-            }
-            disabled={
-              loading ||
-              !input.trim()
-            }
-          >
-            Send
-          </button>
+              {/* Send */}
+
+              <button
+                type="button"
+                className="send-button"
+                onClick={
+                  sendMessage
+                }
+                disabled={
+                  loading ||
+                  !input.trim()
+                }
+              >
+                Send
+              </button>
+
+            </div>
+
+          </div>
 
         </div>
 
