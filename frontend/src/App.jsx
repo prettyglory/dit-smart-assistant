@@ -5,12 +5,25 @@ import {
 } from "react";
 
 import axios from "axios";
+import ReactMarkdown from "react-markdown";
 import "./App.css";
 
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "http://127.0.0.1:8000";
+
+
+const initialMessage = {
+  role: "assistant",
+  text:
+    "Hello! Karibu DIT Smart Assistant 👋\n\n" +
+    "You can ask me about **DIT campuses, programmes, " +
+    "admissions, fees, accommodation, regulations, " +
+    "IPT and academic information**.\n\n" +
+    "Unaweza kuuliza kwa **English au Kiswahili**.",
+  sources: [],
+};
 
 
 const suggestedQuestions = [
@@ -22,23 +35,17 @@ const suggestedQuestions = [
 
 
 function App() {
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      text:
-        "Hello! I am DIT Smart Assistant. " +
-        "Ask me about DIT campuses, programmes, admissions, " +
-        "fees, accommodation, regulations and academic information.",
-      sources: [],
-    },
-  ]);
+  const [messages, setMessages] =
+    useState([initialMessage]);
 
-  const [input, setInput] = useState("");
+  const [input, setInput] =
+    useState("");
 
   const [loading, setLoading] =
     useState(false);
 
-  const messagesEndRef = useRef(null);
+  const messagesEndRef =
+    useRef(null);
 
 
   useEffect(() => {
@@ -96,7 +103,8 @@ function App() {
         {
           role: "assistant",
           text:
-            "Sorry, I could not connect to the DIT Smart Assistant server.",
+            "Sorry, I could not connect to the DIT Smart Assistant server.\n\n" +
+            "Please make sure the backend server is running.",
           sources: [],
         },
       ]);
@@ -111,6 +119,15 @@ function App() {
   };
 
 
+  const clearChat = () => {
+    setMessages([
+      initialMessage,
+    ]);
+
+    setInput("");
+  };
+
+
   const handleKeyDown = (
     event
   ) => {
@@ -119,7 +136,6 @@ function App() {
       !event.shiftKey
     ) {
       event.preventDefault();
-
       sendMessage();
     }
   };
@@ -158,13 +174,26 @@ function App() {
         </div>
 
 
-        <div className="status">
+        <div className="header-actions">
 
-          <span
-            className="status-dot"
-          />
+          <div className="status">
 
-          Online
+            <span
+              className="status-dot"
+            />
+
+            Online
+
+          </div>
+
+
+          <button
+            className="clear-button"
+            onClick={clearChat}
+            disabled={loading}
+          >
+            Clear Chat
+          </button>
 
         </div>
 
@@ -180,14 +209,16 @@ function App() {
           </h2>
 
           <p>
-            Get information from
-            verified DIT sources.
+            Ask questions using
+            English or Kiswahili.
           </p>
+
 
           <div className="suggestions">
 
             {suggestedQuestions.map(
               (question) => (
+
                 <button
                   key={question}
                   className="suggestion-button"
@@ -200,6 +231,7 @@ function App() {
                 >
                   {question}
                 </button>
+
               )
             )}
 
@@ -223,15 +255,30 @@ function App() {
                 <div className="message">
 
                   <div className="message-label">
+
                     {message.role ===
                     "user"
                       ? "You"
                       : "DIT Assistant"}
+
                   </div>
 
 
                   <div className="message-text">
-                    {message.text}
+
+                    {message.role ===
+                    "assistant" ? (
+
+                      <ReactMarkdown>
+                        {message.text}
+                      </ReactMarkdown>
+
+                    ) : (
+
+                      message.text
+
+                    )}
+
                   </div>
 
 
@@ -253,13 +300,14 @@ function App() {
                           <div
                             className="source"
                             key={
-                              sourceIndex
+                              `${source.title}-${source.page}-${sourceIndex}`
                             }
                           >
 
                             <div>
 
                               {source.url ? (
+
                                 <a
                                   href={
                                     source.url
@@ -271,12 +319,15 @@ function App() {
                                     source.title
                                   }
                                 </a>
+
                               ) : (
+
                                 <span>
                                   {
                                     source.title
                                   }
                                 </span>
+
                               )}
 
                             </div>
@@ -285,12 +336,14 @@ function App() {
                             <div className="source-meta">
 
                               {source.page && (
+
                                 <span>
                                   Page{" "}
                                   {
                                     source.page
                                   }
                                 </span>
+
                               )}
 
 
@@ -299,10 +352,12 @@ function App() {
                                   "unknown" && (
 
                                   <span>
+
                                     {source.campus ===
                                     "all"
                                       ? "All campuses"
                                       : `${source.campus} Campus`}
+
                                   </span>
 
                                 )}
@@ -310,15 +365,18 @@ function App() {
                             </div>
 
                           </div>
+
                         )
                       )}
 
                     </div>
+
                   )}
 
                 </div>
 
               </div>
+
             )
           )}
 
@@ -350,6 +408,19 @@ function App() {
         </div>
 
 
+        <div className="disclaimer">
+
+          DIT Smart Assistant provides
+          information from available
+          verified DIT sources.
+          For official decisions,
+          confirm critical information
+          through the relevant DIT office
+          or official DIT website.
+
+        </div>
+
+
         <div className="input-area">
 
           <textarea
@@ -365,6 +436,7 @@ function App() {
             placeholder="Ask anything about DIT..."
             rows="2"
           />
+
 
           <button
             onClick={
