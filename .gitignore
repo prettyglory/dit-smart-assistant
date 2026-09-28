@@ -8,3 +8,5 @@ __pycache__/
 node_modules/
 dist/
 frontend/.env
+
+.streamlit/secrets.toml
