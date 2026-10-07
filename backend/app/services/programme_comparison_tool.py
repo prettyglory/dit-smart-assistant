@@ -74,6 +74,12 @@ ASPECT_QUERIES = {
 }
 
 
+COMPARISON_RESULTS_PER_ASPECT = 3
+MAX_ASPECT_CONTEXT_CHARS = 1800
+MAX_COMPARISON_CONTEXT_CHARS = 12000
+SECTION_OVERHEAD_CHARS = 120
+
+
 def _normalize_programmes(
     programmes: list[str],
 ) -> list[str]:
@@ -117,6 +123,51 @@ def _normalize_aspects(
     return normalized
 
 
+def _truncate_context(
+    value: str,
+    max_chars: int,
+) -> str:
+    clean_value = str(value or "").strip()
+
+    if len(clean_value) <= max_chars:
+        return clean_value
+
+    marker = "\n[Verified context truncated to stay within the agent context budget.]"
+    keep_chars = max(
+        0,
+        max_chars - len(marker),
+    )
+
+    return (
+        clean_value[:keep_chars].rstrip()
+        + marker
+    )
+
+
+def _aspect_context_budget(
+    programme_count: int,
+    aspect_count: int,
+) -> int:
+    section_count = max(
+        1,
+        programme_count * aspect_count,
+    )
+
+    available_per_section = (
+        MAX_COMPARISON_CONTEXT_CHARS
+        // section_count
+        - SECTION_OVERHEAD_CHARS
+    )
+
+    return max(
+        500,
+        min(
+            MAX_ASPECT_CONTEXT_CHARS,
+            available_per_section,
+        ),
+    )
+
+
 def _merge_sources(
     destination: list[dict],
     incoming: list[dict],
@@ -151,8 +202,9 @@ def compare_dit_programmes(
     """
     Retrieve and group verified DIT information for programme comparison.
 
-    The function does not infer missing facts. It returns grouped verified
-    context for the model to summarize into a comparison.
+    The function does not infer missing facts. It returns bounded verified
+    context for the model and compact structured metadata so the same long
+    retrieved text is not duplicated in the tool payload.
     """
 
     clean_programmes = _normalize_programmes(
@@ -192,6 +244,11 @@ def compare_dit_programmes(
             "sources": [],
         }
 
+    per_aspect_budget = _aspect_context_budget(
+        programme_count=len(clean_programmes),
+        aspect_count=len(clean_aspects),
+    )
+
     comparison = {}
     context_sections = []
     sources = []
@@ -209,26 +266,33 @@ def compare_dit_programmes(
 
             result = search_dit_knowledge(
                 query=query,
-                n_results=6,
+                n_results=COMPARISON_RESULTS_PER_ASPECT,
             )
 
-            aspect_result = {
-                "found": result.get(
+            found = bool(
+                result.get(
                     "found",
                     False,
-                ),
-                "query": query,
-                "context": result.get(
+                )
+            )
+            bounded_context = _truncate_context(
+                result.get(
                     "context",
                     "",
                 ),
-            }
+                per_aspect_budget,
+            )
 
+            # Keep structured comparison metadata compact. The verified text
+            # itself is already supplied once through the top-level context.
             programme_results[
                 aspect
-            ] = aspect_result
+            ] = {
+                "found": found,
+                "query": query,
+            }
 
-            if aspect_result["found"]:
+            if found:
                 found_any = True
 
             _merge_sources(
@@ -244,7 +308,7 @@ def compare_dit_programmes(
                     f"PROGRAMME: {programme}\n"
                     f"ASPECT: {aspect}\n"
                     f"VERIFIED RESULT:\n"
-                    f"{aspect_result['context']}"
+                    f"{bounded_context}"
                 )
             )
 
@@ -260,13 +324,22 @@ def compare_dit_programmes(
                 "for the requested programme comparison."
             ),
             "sources": sources,
-            "programme_comparison": comparison,
+            "programme_comparison": {
+                "programmes": clean_programmes,
+                "aspects": clean_aspects,
+                "results": comparison,
+            },
         }
+
+    combined_context = "\n\n---\n\n".join(
+        context_sections
+    )
 
     return {
         "found": True,
-        "context": "\n\n---\n\n".join(
-            context_sections
+        "context": _truncate_context(
+            combined_context,
+            MAX_COMPARISON_CONTEXT_CHARS,
         ),
         "sources": sources,
         "programme_comparison": {
