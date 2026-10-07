@@ -74,9 +74,12 @@ ASPECT_QUERIES = {
 }
 
 
-COMPARISON_RESULTS_PER_ASPECT = 3
-MAX_ASPECT_CONTEXT_CHARS = 1800
-MAX_COMPARISON_CONTEXT_CHARS = 12000
+# Comparison calls can otherwise exceed Groq's on-demand TPM budget because
+# one request contains several verified retrieval sections at once. Keep the
+# composite tool deliberately compact; source metadata is still preserved.
+COMPARISON_RESULTS_PER_ASPECT = 2
+MAX_ASPECT_CONTEXT_CHARS = 900
+MAX_COMPARISON_CONTEXT_CHARS = 6000
 SECTION_OVERHEAD_CHARS = 120
 
 
@@ -160,7 +163,7 @@ def _aspect_context_budget(
     )
 
     return max(
-        500,
+        350,
         min(
             MAX_ASPECT_CONTEXT_CHARS,
             available_per_section,
@@ -283,8 +286,6 @@ def compare_dit_programmes(
                 per_aspect_budget,
             )
 
-            # Keep structured comparison metadata compact. The verified text
-            # itself is already supplied once through the top-level context.
             programme_results[
                 aspect
             ] = {
