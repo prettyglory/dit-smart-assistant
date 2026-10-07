@@ -11,6 +11,9 @@ from app.services.programme_comparison_tool import (
     PROGRAMME_COMPARISON_TOOL,
     compare_dit_programmes,
 )
+from app.services.student_state import (
+    format_student_state_for_agent,
+)
 
 
 MODEL = "openai/gpt-oss-120b"
@@ -110,43 +113,51 @@ PROGRAMME COMPARISON RULES:
 
 CONVERSATION MEMORY RULES:
 
-18. Use recent conversation history to resolve follow-up references such
-    as "that programme", "what about the fees?", "Mwanza campus" or a
-    qualification the user already supplied in the same session.
+18. Use recent conversation history and structured student session context
+    to resolve follow-up references such as "that programme", "what about
+    the fees?", a campus, qualification or GPA supplied earlier.
 
-19. Conversation history provides continuity, not institutional proof.
-    For every factual DIT follow-up, still use the appropriate verified
+19. Structured student state is user-provided conversation context only.
+    It is NOT verified institutional data and must never substitute for
+    retrieval of DIT facts.
+
+20. For every factual DIT follow-up, still use the appropriate verified
     retrieval tool before stating current DIT facts.
 
-20. If the user changes programme, campus, qualification or goal, prefer
-    the newest explicit information and do not carry the old value forward.
+21. If the current user message explicitly changes programme, campus,
+    qualification, GPA or goal, prefer the newest explicit information
+    over older session state.
 
-21. Greetings, thanks and ordinary non-factual conversation may be
+22. Never treat an inferred student goal as an official application or
+    admission status.
+
+23. Greetings, thanks and ordinary non-factual conversation may be
     answered without calling a tool.
 
-22. Answer in the same language used by the user unless the user requests
+24. Answer in the same language used by the user unless the user requests
     another language.
 
 RESPONSE STYLE:
 
-23. Keep answers clear, factual and student-friendly.
+25. Keep answers clear, factual and student-friendly.
 
-24. Use short paragraphs, Markdown headings and bullet points when they
+26. Use short paragraphs, Markdown headings and bullet points when they
     improve readability.
 
-25. For programme comparisons, use a compact comparison structure or
+27. For programme comparisons, use a compact comparison structure or
     table when the retrieved information supports it.
 
-26. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
+28. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
     labels. The application displays verified source metadata separately.
 
-27. Do not create links that were not returned by verified knowledge.
+29. Do not create links that were not returned by verified knowledge.
 """.strip()
 
 
 def _build_messages(
     question: str,
     history: list[dict],
+    student_state: dict | None = None,
 ) -> list:
     messages = [
         {
@@ -154,6 +165,18 @@ def _build_messages(
             "content": SYSTEM_PROMPT,
         }
     ]
+
+    state_context = format_student_state_for_agent(
+        student_state
+    )
+
+    if state_context:
+        messages.append(
+            {
+                "role": "system",
+                "content": state_context,
+            }
+        )
 
     for item in history[-MAX_AGENT_HISTORY_MESSAGES:]:
         role = item.get(
@@ -257,21 +280,24 @@ def _execute_tool(
 def run_dit_agent(
     question: str,
     history: list[dict] | None = None,
+    student_state: dict | None = None,
 ):
     """
     Run the DIT agentic loop.
 
     The model decides when verified DIT retrieval, programme comparison,
     deterministic calculation or a preliminary admission criterion check
-    is required. Tool results are fed back into the model until it produces
-    a final answer or the iteration limit is reached.
+    is required. Recent transcript and structured student state provide
+    conversational continuity but never replace verified DIT retrieval.
     """
 
     history = history or []
+    student_state = student_state or {}
 
     messages = _build_messages(
         question=question,
         history=history,
+        student_state=student_state,
     )
 
     sources = []
