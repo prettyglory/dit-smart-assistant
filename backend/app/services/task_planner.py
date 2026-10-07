@@ -3,11 +3,15 @@ from __future__ import annotations
 
 ELIGIBILITY_PHRASES = (
     "do i qualify",
+    "if i qualify",
+    "check if i qualify",
+    "whether i qualify",
     "am i eligible",
     "eligible",
     "eligibility",
     "naqualify",
     "nina qualify",
+    "kama naqualify",
     "sifa za kujiunga",
 )
 
