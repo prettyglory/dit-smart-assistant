@@ -27,3 +27,4 @@ class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
     session_id: str
+    trace_id: str | None = None
