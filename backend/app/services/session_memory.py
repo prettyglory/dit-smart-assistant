@@ -4,6 +4,11 @@ from datetime import datetime, timedelta, timezone
 from threading import RLock
 from uuid import UUID, uuid4
 
+from app.services.student_state import (
+    extract_student_state_update,
+    merge_student_state,
+)
+
 
 MAX_SESSION_MESSAGES = 12
 MAX_SESSIONS = 500
@@ -11,7 +16,7 @@ SESSION_TTL = timedelta(hours=2)
 
 
 class SessionMemoryStore:
-    """Thread-safe, bounded, in-process conversation memory.
+    """Thread-safe, bounded, in-process conversation and student state memory.
 
     This is intentionally short-term session state. It is suitable for the
     current single-process demo architecture and can later be replaced by
@@ -45,6 +50,14 @@ class SessionMemoryStore:
             return False
 
         return True
+
+    @staticmethod
+    def _new_session(now: datetime) -> dict:
+        return {
+            "messages": [],
+            "student_state": {},
+            "updated_at": now,
+        }
 
     def _prune_expired(self, now: datetime) -> None:
         expired = [
@@ -84,10 +97,7 @@ class SessionMemoryStore:
             self._prune_expired(now)
 
             if resolved not in self._sessions:
-                self._sessions[resolved] = {
-                    "messages": [],
-                    "updated_at": now,
-                }
+                self._sessions[resolved] = self._new_session(now)
 
             self._sessions[resolved]["updated_at"] = now
             self._prune_capacity()
@@ -116,6 +126,80 @@ class SessionMemoryStore:
                 for message in session["messages"]
             ]
 
+    def get_student_state(self, session_id: str) -> dict:
+        """Return a defensive copy of structured user-provided session state."""
+
+        if not self._is_valid_session_id(session_id):
+            return {}
+
+        now = self._now()
+
+        with self._lock:
+            self._prune_expired(now)
+            session = self._sessions.get(session_id)
+
+            if session is None:
+                return {}
+
+            session["updated_at"] = now
+            return dict(
+                session.get(
+                    "student_state",
+                    {},
+                )
+            )
+
+    def update_student_state(
+        self,
+        session_id: str,
+        update: dict,
+    ) -> dict:
+        """Merge explicit structured context into a session and return a copy."""
+
+        now = self._now()
+
+        with self._lock:
+            self._prune_expired(now)
+            session = self._sessions.setdefault(
+                session_id,
+                self._new_session(now),
+            )
+
+            session["student_state"] = merge_student_state(
+                session.get(
+                    "student_state",
+                    {},
+                ),
+                update,
+            )
+            session["updated_at"] = now
+            self._prune_capacity()
+
+            return dict(
+                session["student_state"]
+            )
+
+    def update_student_state_from_message(
+        self,
+        session_id: str,
+        message: str,
+    ) -> dict:
+        """Extract explicit user context from one message and merge it."""
+
+        update = extract_student_state_update(
+            message
+        )
+
+        if not update:
+            return self.get_student_state(
+                session_id
+            )
+
+        return self.update_student_state(
+            session_id=session_id,
+            update=update,
+        )
+
     def seed_history(
         self,
         session_id: str,
@@ -124,10 +208,12 @@ class SessionMemoryStore:
         """Seed a new session from the legacy client-supplied history.
 
         Existing server-side history always wins, which prevents the client
-        from accidentally duplicating messages on every request.
+        from accidentally duplicating messages on every request. User messages
+        in a newly seeded transcript also initialize structured student state.
         """
 
         clean_history = []
+        seeded_state = {}
 
         for item in history:
             role = str(item.get("role", "")).strip()
@@ -143,6 +229,14 @@ class SessionMemoryStore:
                 }
             )
 
+            if role == "user":
+                seeded_state = merge_student_state(
+                    seeded_state,
+                    extract_student_state_update(
+                        content
+                    ),
+                )
+
         if not clean_history:
             return
 
@@ -153,16 +247,20 @@ class SessionMemoryStore:
             session = self._sessions.get(session_id)
 
             if session is None:
-                session = {
-                    "messages": [],
-                    "updated_at": now,
-                }
+                session = self._new_session(now)
                 self._sessions[session_id] = session
 
             if session["messages"]:
                 return
 
             session["messages"] = clean_history[-self.max_messages :]
+            session["student_state"] = merge_student_state(
+                session.get(
+                    "student_state",
+                    {},
+                ),
+                seeded_state,
+            )
             session["updated_at"] = now
             self._prune_capacity()
 
@@ -180,10 +278,7 @@ class SessionMemoryStore:
             self._prune_expired(now)
             session = self._sessions.setdefault(
                 session_id,
-                {
-                    "messages": [],
-                    "updated_at": now,
-                },
+                self._new_session(now),
             )
 
             if user_message.strip():
