@@ -15,6 +15,7 @@ from app.services.programme_comparison_tool import (
 
 MODEL = "openai/gpt-oss-120b"
 MAX_AGENT_ITERATIONS = 5
+MAX_AGENT_HISTORY_MESSAGES = 10
 
 
 client = Groq(
@@ -107,26 +108,39 @@ PROGRAMME COMPARISON RULES:
     programme, make clear that the recommendation is based on the user's
     stated goals and the verified comparison, not an official DIT ranking.
 
-18. Greetings, thanks and ordinary non-factual conversation may be
+CONVERSATION MEMORY RULES:
+
+18. Use recent conversation history to resolve follow-up references such
+    as "that programme", "what about the fees?", "Mwanza campus" or a
+    qualification the user already supplied in the same session.
+
+19. Conversation history provides continuity, not institutional proof.
+    For every factual DIT follow-up, still use the appropriate verified
+    retrieval tool before stating current DIT facts.
+
+20. If the user changes programme, campus, qualification or goal, prefer
+    the newest explicit information and do not carry the old value forward.
+
+21. Greetings, thanks and ordinary non-factual conversation may be
     answered without calling a tool.
 
-19. Answer in the same language used by the user unless the user requests
+22. Answer in the same language used by the user unless the user requests
     another language.
 
 RESPONSE STYLE:
 
-20. Keep answers clear, factual and student-friendly.
+23. Keep answers clear, factual and student-friendly.
 
-21. Use short paragraphs, Markdown headings and bullet points when they
+24. Use short paragraphs, Markdown headings and bullet points when they
     improve readability.
 
-22. For programme comparisons, use a compact comparison structure or
+25. For programme comparisons, use a compact comparison structure or
     table when the retrieved information supports it.
 
-23. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
+26. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
     labels. The application displays verified source metadata separately.
 
-24. Do not create links that were not returned by verified knowledge.
+27. Do not create links that were not returned by verified knowledge.
 """.strip()
 
 
@@ -141,7 +155,7 @@ def _build_messages(
         }
     ]
 
-    for item in history[-6:]:
+    for item in history[-MAX_AGENT_HISTORY_MESSAGES:]:
         role = item.get(
             "role",
             "",
