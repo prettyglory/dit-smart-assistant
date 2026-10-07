@@ -40,6 +40,11 @@ AVAILABLE_TOOL_HANDLERS = {
     "compare_dit_programmes": compare_dit_programmes,
 }
 
+TOOL_SCHEMAS_BY_NAME = {
+    tool["function"]["name"]: tool
+    for tool in AVAILABLE_AGENT_TOOLS
+}
+
 
 SYSTEM_PROMPT = """
 You are DIT Smart Assistant, an agentic AI assistant for
@@ -309,6 +314,41 @@ def _required_tools_for_ready_tasks(
     return required
 
 
+def _tool_names_for_plan(
+    plan: dict,
+) -> set[str]:
+    """Return only tool schemas that can be relevant to this request plan."""
+
+    names = set()
+
+    for task in plan.get(
+        "tasks",
+        [],
+    ):
+        names.update(
+            task.get(
+                "required_tools",
+                [],
+            )
+        )
+
+    return names
+
+
+def _tools_for_plan(
+    plan: dict,
+) -> list[dict]:
+    requested_names = _tool_names_for_plan(
+        plan
+    )
+
+    return [
+        TOOL_SCHEMAS_BY_NAME[name]
+        for name in TOOL_SCHEMAS_BY_NAME
+        if name in requested_names
+    ]
+
+
 def _blocked_dependency_result(
     tool_name: str,
 ) -> dict:
@@ -353,6 +393,9 @@ def run_dit_agent(
     required_tools = _required_tools_for_ready_tasks(
         plan
     )
+    request_tools = _tools_for_plan(
+        plan
+    )
     attempted_tools: set[str] = set()
     successful_tools: set[str] = set()
     sources = []
@@ -360,17 +403,27 @@ def run_dit_agent(
     for _ in range(
         MAX_AGENT_ITERATIONS
     ):
+        request_kwargs = {
+            "model": MODEL,
+            "messages": messages,
+            "temperature": 0.1,
+            "max_tokens": 700,
+        }
+
+        if request_tools:
+            request_kwargs[
+                "tools"
+            ] = request_tools
+            request_kwargs[
+                "tool_choice"
+            ] = "auto"
+
         completion = (
             client
             .chat
             .completions
             .create(
-                model=MODEL,
-                messages=messages,
-                tools=AVAILABLE_AGENT_TOOLS,
-                tool_choice="auto",
-                temperature=0.1,
-                max_tokens=700,
+                **request_kwargs
             )
         )
 
