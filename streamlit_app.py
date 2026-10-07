@@ -112,8 +112,8 @@ with st.spinner(
     prepare_knowledge_base()
 
 
-# Import RAG only after Chroma has been prepared
-from app.services.rag_service import answer_with_rag
+# Import the agent only after Chroma has been prepared.
+from app.services.agent_service import run_dit_agent
 
 
 # =========================================================
@@ -269,7 +269,7 @@ with st.sidebar:
     st.title("DIT Smart Assistant")
 
     st.caption(
-        "Verified-information RAG chatbot"
+        "Agentic AI with verified DIT knowledge"
     )
 
     st.divider()
@@ -528,11 +528,11 @@ if question:
 
         with st.chat_message("assistant"):
             with st.spinner(
-                "Searching verified DIT information..."
+                "Thinking and searching verified DIT information..."
             ):
                 try:
                     answer, sources = (
-                        answer_with_rag(
+                        run_dit_agent(
                             question=question,
                             history=history,
                         )
