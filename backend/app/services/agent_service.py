@@ -11,6 +11,9 @@ from app.services.programme_comparison_tool import (
     PROGRAMME_COMPARISON_TOOL,
     compare_dit_programmes,
 )
+from app.services.rate_limit_retry import (
+    run_with_rate_limit_retry,
+)
 from app.services.student_state import (
     format_student_state_for_agent,
 )
@@ -363,6 +366,26 @@ def _blocked_dependency_result(
     }
 
 
+def _create_model_completion(
+    request_kwargs: dict,
+):
+    """Call Groq with provider-aware TPM retry for production chat requests."""
+
+    return run_with_rate_limit_retry(
+        lambda: (
+            client
+            .chat
+            .completions
+            .create(
+                **request_kwargs
+            )
+        ),
+        max_retries=3,
+        fallback_seconds=25.0,
+        label="DIT agent model request",
+    )
+
+
 def run_dit_agent(
     question: str,
     history: list[dict] | None = None,
@@ -418,13 +441,8 @@ def run_dit_agent(
                 "tool_choice"
             ] = "auto"
 
-        completion = (
-            client
-            .chat
-            .completions
-            .create(
-                **request_kwargs
-            )
+        completion = _create_model_completion(
+            request_kwargs
         )
 
         message = (
