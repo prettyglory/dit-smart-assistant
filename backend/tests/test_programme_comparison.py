@@ -29,6 +29,8 @@ if "app.services.agent_tools" not in sys.modules:
 
 
 from app.services.programme_comparison_tool import (  # noqa: E402
+    COMPARISON_RESULTS_PER_ASPECT,
+    MAX_COMPARISON_CONTEXT_CHARS,
     PROGRAMME_COMPARISON_TOOL,
     compare_dit_programmes,
 )
@@ -108,6 +110,12 @@ class ProgrammeComparisonTests(unittest.TestCase):
             mock_search.call_count,
             8,
         )
+
+        for call in mock_search.call_args_list:
+            self.assertEqual(
+                call.kwargs["n_results"],
+                COMPARISON_RESULTS_PER_ASPECT,
+            )
 
         comparison = result[
             "programme_comparison"
@@ -228,10 +236,51 @@ class ProgrammeComparisonTests(unittest.TestCase):
         self.assertFalse(
             computer["fees"]["found"]
         )
+        self.assertNotIn(
+            "context",
+            computer["fees"],
+        )
         self.assertIn(
             "No verified fee information",
-            computer["fees"]["context"],
+            result["context"],
         )
+
+    @patch(
+        "app.services.programme_comparison_tool.search_dit_knowledge"
+    )
+    def test_comparison_context_is_bounded_and_not_duplicated(
+        self,
+        mock_search,
+    ):
+        mock_search.return_value = {
+            "found": True,
+            "context": "X" * 10000,
+            "sources": [],
+        }
+
+        result = compare_dit_programmes(
+            [
+                "Computer Engineering",
+                "Information Technology",
+            ]
+        )
+
+        self.assertTrue(
+            result["found"]
+        )
+        self.assertLessEqual(
+            len(result["context"]),
+            MAX_COMPARISON_CONTEXT_CHARS,
+        )
+
+        for programme in result[
+            "programme_comparison"
+        ]["results"].values():
+            for aspect in programme.values():
+                self.assertNotIn(
+                    "context",
+                    aspect,
+                )
 
     def test_unsupported_aspects_fail_safely(self):
         result = compare_dit_programmes(
