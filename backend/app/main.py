@@ -3,12 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS
 from app.schemas import ChatRequest, ChatResponse
-from app.services.rag_service import answer_with_rag
+from app.services.agent_service import run_dit_agent
 
 
 app = FastAPI(
     title="DIT Smart Assistant API",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 
@@ -24,7 +24,7 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {
-        "message": "DIT Smart Assistant API is running"
+        "message": "DIT Agentic AI Assistant API is running"
     }
 
 
@@ -46,7 +46,7 @@ def chat(request: ChatRequest):
         for message in request.history
     ]
 
-    answer, sources = answer_with_rag(
+    answer, sources = run_dit_agent(
         question=request.message,
         history=history,
     )
