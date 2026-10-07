@@ -14,10 +14,14 @@ from app.services.programme_comparison_tool import (
 from app.services.student_state import (
     format_student_state_for_agent,
 )
+from app.services.task_planner import (
+    build_request_plan,
+    format_plan_for_agent,
+)
 
 
 MODEL = "openai/gpt-oss-120b"
-MAX_AGENT_ITERATIONS = 5
+MAX_AGENT_ITERATIONS = 7
 MAX_AGENT_HISTORY_MESSAGES = 10
 
 
@@ -30,7 +34,6 @@ AVAILABLE_AGENT_TOOLS = [
     *AGENT_TOOLS,
     PROGRAMME_COMPARISON_TOOL,
 ]
-
 
 AVAILABLE_TOOL_HANDLERS = {
     **TOOL_HANDLERS,
@@ -47,110 +50,106 @@ You can communicate naturally in both English and Kiswahili.
 
 CORE BEHAVIOUR:
 
-1. For factual questions about DIT, use a verified retrieval tool
-   before answering. Use search_dit_knowledge for normal factual
-   lookups and compare_dit_programmes for direct programme comparisons.
+1. For factual questions about DIT, use a verified retrieval tool before
+   answering. Use search_dit_knowledge for normal factual lookups and
+   compare_dit_programmes for direct programme comparisons.
 
-2. Never invent DIT programmes, campuses, fees, admission
-   requirements, dates, regulations, contacts or policies.
+2. Never invent DIT programmes, campuses, fees, admission requirements,
+   dates, regulations, contacts or policies.
 
-3. Treat verified retrieval results as the institutional source
-   of truth available to you.
+3. Treat verified retrieval results as the institutional source of truth
+   available to you.
 
-4. If a verified retrieval tool does not find enough information,
-   clearly say that the information could not be verified from the
-   available DIT knowledge base.
+4. If verified retrieval does not find enough information, clearly say that
+   the requested information could not be verified from the available DIT
+   knowledge base.
 
-5. DIT has multiple campuses. Never assume information for one
-   campus applies to another campus.
+5. DIT has multiple campuses. Never assume information for one campus applies
+   to another campus.
 
-6. You may make multiple tool calls when the user's request contains
-   multiple factual sub-questions.
-
-7. Use calculate_total_amount when exact monetary values need to be
-   added. Only pass amounts that came from the user or verified DIT
+6. Use calculate_total_amount when exact monetary values need to be added.
+   Only pass amounts supplied by the user or returned by verified DIT
    knowledge. Never guess missing amounts.
 
 ADMISSION ELIGIBILITY RULES:
 
-8. When a user asks whether they qualify, first retrieve the relevant
-   DIT admission requirement with search_dit_knowledge.
+7. When a user asks whether they qualify, retrieve the relevant DIT admission
+   requirement with search_dit_knowledge before running an eligibility check.
 
-9. Use check_admission_eligibility only when BOTH of these are available:
-   - the applicant's numeric value, supplied by the user; and
-   - the matching numeric requirement found in verified DIT knowledge.
+8. Use check_admission_eligibility only when BOTH the applicant's numeric
+   value and the matching numeric requirement from verified DIT knowledge are
+   available.
 
-10. Never guess, infer or fabricate an admission threshold just to run
-    the eligibility tool.
+9. Never guess, infer or fabricate an admission threshold just to run the
+   eligibility tool.
 
-11. check_admission_eligibility evaluates only one numeric criterion at
-    a time. A positive result means the applicant meets that criterion
-    only; it is NOT a final admission decision.
+10. check_admission_eligibility evaluates one numeric criterion at a time.
+    A positive result is NOT a final admission decision.
 
-12. If other non-numeric or programme-specific requirements are present,
-    explain them separately from the numeric check.
-
-13. Never tell a user that DIT has officially admitted, accepted or
-    rejected them. Final admission decisions belong to DIT.
+11. Never tell a user that DIT has officially admitted, accepted or rejected
+    them. Final admission decisions belong to DIT.
 
 PROGRAMME COMPARISON RULES:
 
-14. When the user directly asks to compare two or more DIT programmes,
-    prefer compare_dit_programmes instead of manually comparing from
-    memory.
+12. When the user directly asks to compare two or more DIT programmes, prefer
+    compare_dit_programmes instead of manually comparing from memory.
 
-15. Pass only programme names requested by the user. Compare the aspects
-    the user asks for; if they do not specify aspects, compare overview,
-    campus, admission requirements and fees.
+13. Compare only the programmes and aspects requested by the user. If aspects
+    are not specified, compare overview, campus, admission requirements and
+    fees.
 
-16. The programme comparison tool performs verified retrieval internally.
-    Do not invent a value when one programme or one aspect is missing from
-    the returned knowledge. State that it could not be verified.
-
-17. Keep factual differences separate from advice. If you recommend one
-    programme, make clear that the recommendation is based on the user's
-    stated goals and the verified comparison, not an official DIT ranking.
+14. Do not invent a value when a programme comparison aspect is missing from
+    verified knowledge. State that it could not be verified.
 
 CONVERSATION MEMORY RULES:
 
-18. Use recent conversation history and structured student session context
-    to resolve follow-up references such as "that programme", "what about
-    the fees?", a campus, qualification or GPA supplied earlier.
+15. Use recent conversation history and structured student session context to
+    resolve follow-up references such as "that programme", "what about the
+    fees?", a campus, qualification or GPA supplied earlier.
 
-19. Structured student state is user-provided conversation context only.
-    It is NOT verified institutional data and must never substitute for
-    retrieval of DIT facts.
+16. Structured student state is user-provided conversation context only. It
+    is NOT verified institutional data and must never substitute for retrieval
+    of DIT facts.
 
-20. For every factual DIT follow-up, still use the appropriate verified
+17. For every factual DIT follow-up, still use the appropriate verified
     retrieval tool before stating current DIT facts.
 
-21. If the current user message explicitly changes programme, campus,
-    qualification, GPA or goal, prefer the newest explicit information
-    over older session state.
+18. If the current message changes programme, campus, qualification, GPA or
+    goal, prefer the newest explicit information over older session state.
 
-22. Never treat an inferred student goal as an official application or
-    admission status.
+PLANNING RULES:
 
-23. Greetings, thanks and ordinary non-factual conversation may be
-    answered without calling a tool.
+19. When an execution plan is supplied by the runtime, follow its task order
+    and dependency relationships. Do not skip required tool work merely to
+    produce a faster answer.
 
-24. Answer in the same language used by the user unless the user requests
+20. A dependent deterministic check must wait for its verified prerequisite.
+    If a required user input is missing, do not fabricate it; ask the user for
+    that input if it is necessary to continue.
+
+21. Tool failure is a valid observation. If verified information cannot be
+    retrieved, explain the limitation rather than inventing a result.
+
+22. Greetings, thanks and ordinary non-factual conversation may be answered
+    without calling a tool.
+
+23. Answer in the same language used by the user unless the user requests
     another language.
 
 RESPONSE STYLE:
 
-25. Keep answers clear, factual and student-friendly.
+24. Keep answers clear, factual and student-friendly.
 
-26. Use short paragraphs, Markdown headings and bullet points when they
+25. Use short paragraphs, Markdown headings and bullet points when they
     improve readability.
 
-27. For programme comparisons, use a compact comparison structure or
-    table when the retrieved information supports it.
+26. For programme comparisons, use a compact comparison structure or table
+    when the retrieved information supports it.
 
-28. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
+27. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
     labels. The application displays verified source metadata separately.
 
-29. Do not create links that were not returned by verified knowledge.
+28. Do not create links that were not returned by verified knowledge.
 """.strip()
 
 
@@ -158,6 +157,7 @@ def _build_messages(
     question: str,
     history: list[dict],
     student_state: dict | None = None,
+    plan: dict | None = None,
 ) -> list:
     messages = [
         {
@@ -169,7 +169,6 @@ def _build_messages(
     state_context = format_student_state_for_agent(
         student_state
     )
-
     if state_context:
         messages.append(
             {
@@ -178,12 +177,22 @@ def _build_messages(
             }
         )
 
+    plan_context = format_plan_for_agent(
+        plan
+    )
+    if plan_context:
+        messages.append(
+            {
+                "role": "system",
+                "content": plan_context,
+            }
+        )
+
     for item in history[-MAX_AGENT_HISTORY_MESSAGES:]:
         role = item.get(
             "role",
             "",
         )
-
         content = item.get(
             "content",
             "",
@@ -234,7 +243,6 @@ def _merge_sources(
             source.get("url", ""),
             source.get("page"),
         )
-
         if key in seen:
             continue
 
@@ -265,7 +273,6 @@ def _execute_tool(
         return handler(
             **arguments
         )
-
     except TypeError as error:
         return {
             "found": False,
@@ -277,29 +284,77 @@ def _execute_tool(
         }
 
 
+def _required_tools_for_ready_tasks(
+    plan: dict,
+) -> set[str]:
+    required = set()
+
+    for task in plan.get(
+        "tasks",
+        [],
+    ):
+        if not task.get(
+            "ready",
+            True,
+        ):
+            continue
+
+        required.update(
+            task.get(
+                "required_tools",
+                [],
+            )
+        )
+
+    return required
+
+
+def _blocked_dependency_result(
+    tool_name: str,
+) -> dict:
+    return {
+        "found": False,
+        "context": (
+            f"Runtime planning guard blocked '{tool_name}' because its verified "
+            "prerequisite has not completed successfully. Retrieve the relevant "
+            "DIT requirement first; do not guess the missing prerequisite."
+        ),
+        "sources": [],
+    }
+
+
 def run_dit_agent(
     question: str,
     history: list[dict] | None = None,
     student_state: dict | None = None,
 ):
-    """
-    Run the DIT agentic loop.
+    """Run the planned DIT agentic tool loop.
 
-    The model decides when verified DIT retrieval, programme comparison,
-    deterministic calculation or a preliminary admission criterion check
-    is required. Recent transcript and structured student state provide
-    conversational continuity but never replace verified DIT retrieval.
+    The runtime builds an inspectable task plan before model execution. The
+    model still chooses concrete tool arguments, while runtime guards enforce
+    critical dependencies such as verified retrieval before eligibility checks.
     """
 
     history = history or []
     student_state = student_state or {}
 
+    plan = build_request_plan(
+        question=question,
+        student_state=student_state,
+    )
+
     messages = _build_messages(
         question=question,
         history=history,
         student_state=student_state,
+        plan=plan,
     )
 
+    required_tools = _required_tools_for_ready_tasks(
+        plan
+    )
+    attempted_tools: set[str] = set()
+    successful_tools: set[str] = set()
     sources = []
 
     for _ in range(
@@ -324,18 +379,43 @@ def run_dit_agent(
             .choices[0]
             .message
         )
-
         tool_calls = (
             message.tool_calls
             or []
         )
 
         if not tool_calls:
+            pending_tools = (
+                required_tools
+                - attempted_tools
+            )
+
+            if pending_tools:
+                messages.append(
+                    message
+                )
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": (
+                            "The execution plan is incomplete. Before producing "
+                            "the final answer, attempt these pending required "
+                            "tools when their inputs are available: "
+                            + ", ".join(
+                                sorted(
+                                    pending_tools
+                                )
+                            )
+                            + ". Do not fabricate missing inputs or facts."
+                        ),
+                    }
+                )
+                continue
+
             return (
                 message.content
                 or (
-                    "I could not produce a complete "
-                    "answer for that request."
+                    "I could not produce a complete answer for that request."
                 ),
                 sources,
             )
@@ -349,6 +429,9 @@ def run_dit_agent(
                 tool_call
                 .function
                 .name
+            )
+            attempted_tools.add(
+                tool_name
             )
 
             try:
@@ -367,10 +450,20 @@ def run_dit_agent(
                         "Tool arguments must be a JSON object."
                     )
 
-                result = _execute_tool(
-                    tool_name=tool_name,
-                    arguments=arguments,
-                )
+                if (
+                    tool_name
+                    == "check_admission_eligibility"
+                    and "search_dit_knowledge"
+                    not in successful_tools
+                ):
+                    result = _blocked_dependency_result(
+                        tool_name
+                    )
+                else:
+                    result = _execute_tool(
+                        tool_name=tool_name,
+                        arguments=arguments,
+                    )
 
             except (
                 json.JSONDecodeError,
@@ -379,11 +472,19 @@ def run_dit_agent(
                 result = {
                     "found": False,
                     "context": (
-                        "The tool request could not be executed because "
-                        f"its arguments were invalid: {error}"
+                        "The tool request could not be executed because its "
+                        f"arguments were invalid: {error}"
                     ),
                     "sources": [],
                 }
+
+            if result.get(
+                "found",
+                False,
+            ):
+                successful_tools.add(
+                    tool_name
+                )
 
             _merge_sources(
                 sources,
@@ -404,25 +505,18 @@ def run_dit_agent(
                 ),
             }
 
-            if result.get("query"):
-                tool_payload["query"] = (
-                    result["query"]
-                )
-
-            if result.get("calculation"):
-                tool_payload["calculation"] = (
-                    result["calculation"]
-                )
-
-            if result.get("eligibility"):
-                tool_payload["eligibility"] = (
-                    result["eligibility"]
-                )
-
-            if result.get("programme_comparison"):
-                tool_payload["programme_comparison"] = (
-                    result["programme_comparison"]
-                )
+            for result_key in (
+                "query",
+                "calculation",
+                "eligibility",
+                "programme_comparison",
+            ):
+                if result.get(
+                    result_key
+                ):
+                    tool_payload[result_key] = (
+                        result[result_key]
+                    )
 
             messages.append(
                 {
@@ -439,8 +533,7 @@ def run_dit_agent(
             )
 
     return (
-        "I could not complete the request within the "
-        "allowed number of agent steps. Please try "
-        "a more specific DIT question.",
+        "I could not complete the request within the allowed number of agent "
+        "steps. Please try a more specific DIT question.",
         sources,
     )
