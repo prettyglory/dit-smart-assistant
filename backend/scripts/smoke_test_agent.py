@@ -11,6 +11,10 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+from app.services.rate_limit_retry import (  # noqa: E402
+    run_with_rate_limit_retry,
+)
+
 
 def _fail(message: str) -> None:
     raise RuntimeError(message)
@@ -100,11 +104,19 @@ def _run_case(
     from app.services.execution_trace import agent_traces
     from app.services.traced_agent_service import run_traced_dit_agent
 
-    answer, sources, trace_id = run_traced_dit_agent(
-        question=question,
-        history=history or [],
-        student_state=student_state or {},
-        session_id=session_id,
+    def execute_agent():
+        return run_traced_dit_agent(
+            question=question,
+            history=history or [],
+            student_state=student_state or {},
+            session_id=session_id,
+        )
+
+    answer, sources, trace_id = run_with_rate_limit_retry(
+        execute_agent,
+        max_retries=3,
+        fallback_seconds=25.0,
+        label=label,
     )
 
     trace = agent_traces.get(trace_id)
