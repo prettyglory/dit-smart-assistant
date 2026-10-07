@@ -21,9 +21,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Compile backend Python modules
+      - name: Compile backend Python modules and scripts
         run: |
-          python -m compileall backend/app
+          python -m compileall backend/app backend/scripts
 
       - name: Run agentic RAG unit tests
         run: |
