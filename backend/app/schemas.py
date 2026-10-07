@@ -9,6 +9,8 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 
+    session_id: str | None = None
+
     history: list[ChatMessage] = Field(
         default_factory=list
     )
@@ -24,3 +26,4 @@ class Source(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: list[Source]
+    session_id: str
