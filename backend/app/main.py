@@ -9,7 +9,7 @@ from app.services.session_memory import session_memory
 
 app = FastAPI(
     title="DIT Smart Assistant API",
-    version="2.1.0",
+    version="2.2.0",
 )
 
 
@@ -55,6 +55,11 @@ def chat(request: ChatRequest):
         history=client_history,
     )
 
+    student_state = session_memory.update_student_state_from_message(
+        session_id=session_id,
+        message=request.message,
+    )
+
     history = session_memory.get_history(
         session_id
     )
@@ -62,6 +67,7 @@ def chat(request: ChatRequest):
     answer, sources = run_dit_agent(
         question=request.message,
         history=history,
+        student_state=student_state,
     )
 
     session_memory.append_turn(
