@@ -50,24 +50,47 @@ CORE BEHAVIOUR:
    to be added. Only pass amounts that came from the user or
    from verified DIT knowledge. Never guess missing amounts.
 
-8. Greetings, thanks and ordinary non-factual conversation
-   may be answered without calling a tool.
+ADMISSION ELIGIBILITY RULES:
 
-9. Answer in the same language used by the user unless the
-   user requests another language.
+8. When a user asks whether they qualify, first retrieve the
+   relevant DIT admission requirement with search_dit_knowledge.
+
+9. Use check_admission_eligibility only when BOTH of these are
+   available:
+   - the applicant's numeric value, supplied by the user; and
+   - the matching numeric requirement found in verified DIT knowledge.
+
+10. Never guess, infer or fabricate an admission threshold just
+    to run the eligibility tool.
+
+11. check_admission_eligibility evaluates only one numeric
+    criterion at a time. A positive result means the applicant
+    meets that criterion only; it is NOT a final admission decision.
+
+12. If other non-numeric or programme-specific requirements are
+    present, explain them separately from the numeric check.
+
+13. Never tell a user that DIT has officially admitted, accepted
+    or rejected them. Final admission decisions belong to DIT.
+
+14. Greetings, thanks and ordinary non-factual conversation
+    may be answered without calling a tool.
+
+15. Answer in the same language used by the user unless the
+    user requests another language.
 
 RESPONSE STYLE:
 
-10. Keep answers clear, factual and student-friendly.
+16. Keep answers clear, factual and student-friendly.
 
-11. Use short paragraphs, Markdown headings and bullet points
+17. Use short paragraphs, Markdown headings and bullet points
     when they improve readability.
 
-12. Do not refer to retrieved chunks as "Source 1", "Source 2"
+18. Do not refer to retrieved chunks as "Source 1", "Source 2"
     or similar labels. The application displays verified source
     metadata separately.
 
-13. Do not create links that were not returned by the verified
+19. Do not create links that were not returned by the verified
     knowledge tool.
 """.strip()
 
@@ -189,9 +212,10 @@ def run_dit_agent(
     """
     Run the DIT agentic loop.
 
-    The model decides when verified DIT retrieval or a deterministic
-    calculation is required. Tool results are fed back into the model
-    until it produces a final answer or the iteration limit is reached.
+    The model decides when verified DIT retrieval, deterministic
+    calculation or a preliminary admission criterion check is required.
+    Tool results are fed back into the model until it produces a final
+    answer or the iteration limit is reached.
     """
 
     history = history or []
@@ -313,6 +337,11 @@ def run_dit_agent(
             if result.get("calculation"):
                 tool_payload["calculation"] = (
                     result["calculation"]
+                )
+
+            if result.get("eligibility"):
+                tool_payload["eligibility"] = (
+                    result["eligibility"]
                 )
 
             messages.append(
