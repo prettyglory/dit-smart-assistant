@@ -76,9 +76,86 @@ CALCULATE_TOTAL_AMOUNT_TOOL = {
 }
 
 
+CHECK_ADMISSION_ELIGIBILITY_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "check_admission_eligibility",
+        "description": (
+            "Perform a deterministic preliminary comparison between one "
+            "applicant numeric value and one verified DIT admission requirement. "
+            "Use this only AFTER search_dit_knowledge has returned the relevant "
+            "official requirement. This tool does not make a final admission "
+            "decision and must not be used with guessed requirements."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "applicant_value": {
+                    "type": "number",
+                    "description": (
+                        "The applicant's numeric value, for example GPA, points, "
+                        "number of passes or another numeric admission criterion."
+                    ),
+                },
+                "required_value": {
+                    "type": "number",
+                    "description": (
+                        "The numeric requirement retrieved from verified DIT "
+                        "knowledge."
+                    ),
+                },
+                "comparison": {
+                    "type": "string",
+                    "enum": [
+                        "gte",
+                        "gt",
+                        "lte",
+                        "lt",
+                        "eq",
+                    ],
+                    "description": (
+                        "How the applicant value must compare with the verified "
+                        "requirement: gte, gt, lte, lt or eq."
+                    ),
+                },
+                "criterion": {
+                    "type": "string",
+                    "description": (
+                        "Human-readable criterion, such as Ordinary Diploma GPA "
+                        "or ACSEE points."
+                    ),
+                },
+                "unit": {
+                    "type": "string",
+                    "description": (
+                        "Optional unit or scale label, such as GPA, points or passes."
+                    ),
+                    "default": "",
+                },
+                "programme": {
+                    "type": "string",
+                    "description": (
+                        "Optional programme or admission route being checked."
+                    ),
+                    "default": "",
+                },
+            },
+            "required": [
+                "applicant_value",
+                "required_value",
+                "comparison",
+                "criterion",
+            ],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
 AGENT_TOOLS = [
     SEARCH_DIT_KNOWLEDGE_TOOL,
     CALCULATE_TOTAL_AMOUNT_TOOL,
+    CHECK_ADMISSION_ELIGIBILITY_TOOL,
 ]
 
 
@@ -307,7 +384,144 @@ def calculate_total_amount(
     }
 
 
+def check_admission_eligibility(
+    applicant_value: float,
+    required_value: float,
+    comparison: str,
+    criterion: str,
+    unit: str = "",
+    programme: str = "",
+) -> dict:
+    """
+    Compare one applicant numeric value against one verified requirement.
+
+    This is intentionally a preliminary criterion check, not a final
+    admission decision. Other programme-specific requirements may apply.
+    """
+
+    try:
+        applicant = Decimal(
+            str(applicant_value)
+        )
+        required = Decimal(
+            str(required_value)
+        )
+
+        if (
+            not applicant.is_finite()
+            or not required.is_finite()
+        ):
+            raise InvalidOperation
+
+    except (
+        InvalidOperation,
+        ValueError,
+        TypeError,
+    ):
+        return {
+            "found": False,
+            "context": (
+                "The applicant value or verified requirement was invalid."
+            ),
+            "sources": [],
+        }
+
+    if applicant < 0 or required < 0:
+        return {
+            "found": False,
+            "context": (
+                "Admission comparison values cannot be negative."
+            ),
+            "sources": [],
+        }
+
+    comparisons = {
+        "gte": lambda left, right: left >= right,
+        "gt": lambda left, right: left > right,
+        "lte": lambda left, right: left <= right,
+        "lt": lambda left, right: left < right,
+        "eq": lambda left, right: left == right,
+    }
+
+    comparator = comparisons.get(
+        comparison
+    )
+
+    if comparator is None:
+        return {
+            "found": False,
+            "context": (
+                "Unsupported admission comparison. Use gte, gt, lte, lt or eq."
+            ),
+            "sources": [],
+        }
+
+    meets_requirement = comparator(
+        applicant,
+        required,
+    )
+
+    clean_criterion = (
+        criterion.strip()
+        if criterion and criterion.strip()
+        else "admission criterion"
+    )
+
+    clean_unit = (
+        unit.strip()
+        if unit
+        else ""
+    )
+
+    clean_programme = (
+        programme.strip()
+        if programme
+        else ""
+    )
+
+    unit_suffix = (
+        f" {clean_unit}"
+        if clean_unit
+        else ""
+    )
+
+    programme_text = (
+        f" for {clean_programme}"
+        if clean_programme
+        else ""
+    )
+
+    status = (
+        "MEETS"
+        if meets_requirement
+        else "DOES NOT MEET"
+    )
+
+    return {
+        "found": True,
+        "context": (
+            f"Preliminary numeric admission check{programme_text}: "
+            f"{clean_criterion}. Applicant value: {applicant}{unit_suffix}. "
+            f"Verified requirement: {comparison} {required}{unit_suffix}. "
+            f"Result: {status} this numeric criterion. This is not a final "
+            "admission decision; other DIT requirements may still apply."
+        ),
+        "sources": [],
+        "eligibility": {
+            "criterion": clean_criterion,
+            "programme": clean_programme,
+            "applicant_value": str(applicant),
+            "required_value": str(required),
+            "comparison": comparison,
+            "unit": clean_unit,
+            "meets_requirement": meets_requirement,
+            "final_admission_decision": False,
+        },
+    }
+
+
 TOOL_HANDLERS = {
     "search_dit_knowledge": search_dit_knowledge,
     "calculate_total_amount": calculate_total_amount,
+    "check_admission_eligibility": check_admission_eligibility,
 }
