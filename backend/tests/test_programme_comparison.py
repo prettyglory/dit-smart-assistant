@@ -10,20 +10,22 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 
-# Keep these tests independent from the production RAG dependencies.
-fake_agent_tools = ModuleType(
-    "app.services.agent_tools"
-)
-fake_agent_tools.search_dit_knowledge = (
-    lambda **kwargs: {
-        "found": False,
-        "context": "No data.",
-        "sources": [],
-    }
-)
-sys.modules[
-    "app.services.agent_tools"
-] = fake_agent_tools
+# Keep this test runnable on its own without replacing an agent_tools module
+# that may already have been imported by another test module.
+if "app.services.agent_tools" not in sys.modules:
+    fake_agent_tools = ModuleType(
+        "app.services.agent_tools"
+    )
+    fake_agent_tools.search_dit_knowledge = (
+        lambda **kwargs: {
+            "found": False,
+            "context": "No data.",
+            "sources": [],
+        }
+    )
+    sys.modules[
+        "app.services.agent_tools"
+    ] = fake_agent_tools
 
 
 from app.services.programme_comparison_tool import (  # noqa: E402
