@@ -2,7 +2,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 
@@ -12,6 +12,54 @@ if str(BACKEND_DIR) not in sys.path:
 
 # app.config validates the key at import time. Tests never call the real API.
 os.environ.setdefault("GROQ_API_KEY", "test-key")
+
+# Keep unit tests independent from installed third-party packages and from
+# external services. Production integrations are replaced with tiny stand-ins
+# before importing the agent modules.
+fake_dotenv = ModuleType("dotenv")
+fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+sys.modules.setdefault("dotenv", fake_dotenv)
+
+
+class _FakeCompletions:
+    def create(self, *args, **kwargs):
+        raise AssertionError(
+            "A unit test attempted to call the real Groq client."
+        )
+
+
+class _FakeGroq:
+    def __init__(self, *args, **kwargs):
+        self.chat = SimpleNamespace(
+            completions=_FakeCompletions()
+        )
+
+
+fake_groq = ModuleType("groq")
+fake_groq.Groq = _FakeGroq
+sys.modules.setdefault("groq", fake_groq)
+
+fake_rag_service = ModuleType(
+    "app.services.rag_service"
+)
+fake_rag_service.detect_categories = (
+    lambda question: ["programme"]
+)
+sys.modules.setdefault(
+    "app.services.rag_service",
+    fake_rag_service,
+)
+
+fake_vector_store = ModuleType(
+    "app.services.vector_store"
+)
+fake_vector_store.search_knowledge = (
+    lambda **kwargs: []
+)
+sys.modules.setdefault(
+    "app.services.vector_store",
+    fake_vector_store,
+)
 
 from app.services.agent_service import (  # noqa: E402
     MAX_AGENT_ITERATIONS,
