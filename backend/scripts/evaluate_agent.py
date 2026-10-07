@@ -17,6 +17,9 @@ from app.services.agent_evaluation import (  # noqa: E402
     load_eval_cases,
     summarize_results,
 )
+from app.services.rate_limit_retry import (  # noqa: E402
+    run_with_rate_limit_retry,
+)
 
 
 def _print_result(result: dict) -> None:
@@ -61,22 +64,32 @@ def run_live(cases: list[dict]) -> list[dict]:
     results = []
 
     for case in cases:
-        answer, _, trace_id = run_traced_dit_agent(
-            question=case.get(
-                "question",
-                "",
-            ),
-            student_state=case.get(
-                "student_state",
-                {},
-            ),
-            session_id=(
-                "eval-"
-                + case.get(
-                    "id",
-                    "case",
-                )
-            ),
+        case_id = case.get(
+            "id",
+            "case",
+        )
+
+        def execute_case():
+            return run_traced_dit_agent(
+                question=case.get(
+                    "question",
+                    "",
+                ),
+                student_state=case.get(
+                    "student_state",
+                    {},
+                ),
+                session_id=(
+                    "eval-"
+                    + case_id
+                ),
+            )
+
+        answer, _, trace_id = run_with_rate_limit_retry(
+            execute_case,
+            max_retries=3,
+            fallback_seconds=25.0,
+            label=f"Live eval {case_id}",
         )
 
         trace = agent_traces.get(
