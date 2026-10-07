@@ -1,15 +1,16 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import ALLOWED_ORIGINS
 from app.schemas import ChatRequest, ChatResponse
-from app.services.agent_service import run_dit_agent
+from app.services.execution_trace import agent_traces
 from app.services.session_memory import session_memory
+from app.services.traced_agent_service import run_traced_dit_agent
 
 
 app = FastAPI(
     title="DIT Smart Assistant API",
-    version="2.2.0",
+    version="2.3.0",
 )
 
 
@@ -64,10 +65,11 @@ def chat(request: ChatRequest):
         session_id
     )
 
-    answer, sources = run_dit_agent(
+    answer, sources, trace_id = run_traced_dit_agent(
         question=request.message,
         history=history,
         student_state=student_state,
+        session_id=session_id,
     )
 
     session_memory.append_turn(
@@ -80,7 +82,23 @@ def chat(request: ChatRequest):
         answer=answer,
         sources=sources,
         session_id=session_id,
+        trace_id=trace_id,
     )
+
+
+@app.get("/api/traces/{trace_id}")
+def get_agent_trace(trace_id: str):
+    trace = agent_traces.get(
+        trace_id
+    )
+
+    if trace is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Agent execution trace not found or expired.",
+        )
+
+    return trace
 
 
 @app.delete("/api/sessions/{session_id}")
