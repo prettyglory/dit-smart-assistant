@@ -1,6 +1,7 @@
 name: Agentic RAG Tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feat/agentic-rag
@@ -74,15 +75,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check one-shot validation marker
+      - name: Check live validation request
         id: marker
         shell: bash
         run: |
-          if [ -f .github/live-validation-once ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -f .github/live-validation-once ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Live validation enabled."
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Live validation marker not present; skipping real API validation."
+            echo "Live validation not requested; skipping real API validation."
           fi
 
       - name: Set up Python
