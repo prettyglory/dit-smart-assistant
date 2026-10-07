@@ -66,6 +66,7 @@ from app.services.agent_service import (  # noqa: E402
     run_dit_agent,
 )
 from app.services.agent_tools import (  # noqa: E402
+    calculate_total_amount,
     search_dit_knowledge,
 )
 
@@ -175,6 +176,38 @@ class SearchDITKnowledgeTests(unittest.TestCase):
         self.assertEqual(result["sources"], [])
         self.assertIn(
             "No sufficiently relevant information",
+            result["context"],
+        )
+
+
+class CalculatorToolTests(unittest.TestCase):
+
+    def test_calculator_adds_verified_amounts_exactly(self):
+        result = calculate_total_amount(
+            amounts=[1500000, 250000, 50000],
+            currency="TZS",
+            description="student charges",
+        )
+
+        self.assertTrue(result["found"])
+        self.assertEqual(
+            result["calculation"]["total"],
+            "1800000",
+        )
+        self.assertIn(
+            "TZS 1,800,000.00",
+            result["context"],
+        )
+
+    def test_calculator_rejects_negative_amounts(self):
+        result = calculate_total_amount(
+            amounts=[1000, -50],
+            currency="TZS",
+        )
+
+        self.assertFalse(result["found"])
+        self.assertIn(
+            "Negative monetary amounts",
             result["context"],
         )
 
