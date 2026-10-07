@@ -66,3 +66,74 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+  live-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check one-shot validation marker
+        id: marker
+        shell: bash
+        run: |
+          if [ -f .github/live-validation-once ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Live validation marker not present; skipping real API validation."
+          fi
+
+      - name: Set up Python
+        if: steps.marker.outputs.enabled == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check GROQ_API_KEY secret
+        if: steps.marker.outputs.enabled == 'true'
+        id: secret
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Live validation blocked::GROQ_API_KEY repository secret is not configured."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "GROQ_API_KEY is available."
+          fi
+
+      - name: Install backend dependencies
+        if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+
+      - name: Build DIT ChromaDB knowledge base
+        if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available == 'true'
+        working-directory: backend
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python -m scripts.ingest
+
+      - name: Run live Agentic RAG smoke tests
+        if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available == 'true'
+        working-directory: backend
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/smoke_test_agent.py
+
+      - name: Run live agent evaluation suite
+        if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available == 'true'
+        working-directory: backend
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python scripts/evaluate_agent.py --mode live
+
+      - name: Report missing secret blocker
+        if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available != 'true'
+        run: |
+          echo "Live runtime validation was requested but could not run because GROQ_API_KEY is not configured as a repository secret."
