@@ -30,11 +30,11 @@ def _capture_first(patterns: list[str], text: str) -> str:
 
         value = _clean_text(match.group(1))
         value = re.split(
-            r"[?.!,;]|\b(?:and|na|but|lakini|with|kwa|at|in)\b",
+            r"[?!,;]|\b(?:and|na|but|lakini|with|kwa|at|in)\b",
             value,
             maxsplit=1,
             flags=re.IGNORECASE,
-        )[0].strip()
+        )[0].strip(" .")
 
         if value:
             return value
@@ -48,10 +48,18 @@ def _extract_gpa(text: str) -> str:
         r"\b(?:i have|nina)\s+(?:a\s+)?gpa\s*(?:of)?\s*([0-5](?:\.\d{1,2})?)\b",
     ]
 
-    raw = _capture_first(
-        patterns,
-        text,
-    )
+    raw = ""
+
+    for pattern in patterns:
+        match = re.search(
+            pattern,
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        if match:
+            raw = match.group(1)
+            break
 
     if not raw:
         return ""
@@ -112,15 +120,49 @@ def _extract_programme(text: str) -> str:
 
 
 def _extract_campus(text: str) -> str:
-    patterns = [
-        r"\b([A-Za-z][A-Za-z' -]{1,40})\s+(?:campus|kampasi)\b",
+    after_label = re.search(
         r"\b(?:campus|kampasi)\s+(?:ya\s+)?([A-Za-z][A-Za-z' -]{1,40})",
-    ]
-
-    return _capture_first(
-        patterns,
         text,
+        flags=re.IGNORECASE,
     )
+
+    if after_label:
+        value = _clean_text(
+            after_label.group(1)
+        )
+        value = re.split(
+            r"[.?!,;]|\b(?:and|na|but|lakini|with|kwa)\b",
+            value,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
+
+        if value:
+            return value
+
+    before_label = re.search(
+        r"\b([A-Za-z][A-Za-z' -]{1,40})\s+(?:campus|kampasi)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if not before_label:
+        return ""
+
+    value = _clean_text(
+        before_label.group(1)
+    )
+
+    # A greedy phrase such as "interested in Mwanza campus" should retain
+    # only the explicit location after the final preposition.
+    parts = re.split(
+        r"\b(?:in|at|kwenye|ya)\b",
+        value,
+        flags=re.IGNORECASE,
+    )
+    value = parts[-1].strip(" .")
+
+    return value
 
 
 def _extract_goal(text: str) -> str:
