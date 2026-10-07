@@ -4,8 +4,8 @@ from groq import Groq
 
 from app.config import GROQ_API_KEY
 from app.services.agent_tools import (
-    SEARCH_DIT_KNOWLEDGE_TOOL,
-    search_dit_knowledge,
+    AGENT_TOOLS,
+    TOOL_HANDLERS,
 )
 
 
@@ -33,12 +33,12 @@ CORE BEHAVIOUR:
 2. Never invent DIT programmes, campuses, fees, admission
    requirements, dates, regulations, contacts or policies.
 
-3. Treat the search_dit_knowledge result as the verified
+3. Treat search_dit_knowledge results as the verified
    institutional source of truth available to you.
 
-4. If the tool does not find enough verified information,
-   clearly say that the information could not be verified
-   from the available DIT knowledge base.
+4. If the knowledge tool does not find enough verified
+   information, clearly say that the information could not
+   be verified from the available DIT knowledge base.
 
 5. DIT has multiple campuses. Never assume information for
    one campus applies to another campus.
@@ -46,24 +46,28 @@ CORE BEHAVIOUR:
 6. You may call the knowledge tool more than once when the
    user's request contains multiple factual sub-questions.
 
-7. Greetings, thanks and ordinary non-factual conversation
+7. Use calculate_total_amount when exact monetary values need
+   to be added. Only pass amounts that came from the user or
+   from verified DIT knowledge. Never guess missing amounts.
+
+8. Greetings, thanks and ordinary non-factual conversation
    may be answered without calling a tool.
 
-8. Answer in the same language used by the user unless the
+9. Answer in the same language used by the user unless the
    user requests another language.
 
 RESPONSE STYLE:
 
-9. Keep answers clear, factual and student-friendly.
+10. Keep answers clear, factual and student-friendly.
 
-10. Use short paragraphs, Markdown headings and bullet points
+11. Use short paragraphs, Markdown headings and bullet points
     when they improve readability.
 
-11. Do not refer to retrieved chunks as "Source 1", "Source 2"
+12. Do not refer to retrieved chunks as "Source 1", "Source 2"
     or similar labels. The application displays verified source
     metadata separately.
 
-12. Do not create links that were not returned by the verified
+13. Do not create links that were not returned by the verified
     knowledge tool.
 """.strip()
 
@@ -149,21 +153,33 @@ def _execute_tool(
     tool_name: str,
     arguments: dict,
 ) -> dict:
-    if tool_name == "search_dit_knowledge":
-        return search_dit_knowledge(
-            query=arguments.get(
-                "query",
-                "",
-            )
+    handler = TOOL_HANDLERS.get(
+        tool_name
+    )
+
+    if handler is None:
+        return {
+            "found": False,
+            "context": (
+                f"The requested tool '{tool_name}' is not available."
+            ),
+            "sources": [],
+        }
+
+    try:
+        return handler(
+            **arguments
         )
 
-    return {
-        "found": False,
-        "context": (
-            f"The requested tool '{tool_name}' is not available."
-        ),
-        "sources": [],
-    }
+    except TypeError as error:
+        return {
+            "found": False,
+            "context": (
+                "The tool request could not be executed because its "
+                f"arguments were invalid: {error}"
+            ),
+            "sources": [],
+        }
 
 
 def run_dit_agent(
@@ -173,9 +189,9 @@ def run_dit_agent(
     """
     Run the DIT agentic loop.
 
-    The model decides when verified DIT retrieval is required.
-    Tool results are fed back into the model until it produces
-    a final answer or the iteration limit is reached.
+    The model decides when verified DIT retrieval or a deterministic
+    calculation is required. Tool results are fed back into the model
+    until it produces a final answer or the iteration limit is reached.
     """
 
     history = history or []
@@ -184,10 +200,6 @@ def run_dit_agent(
         question=question,
         history=history,
     )
-
-    tools = [
-        SEARCH_DIT_KNOWLEDGE_TOOL
-    ]
 
     sources = []
 
@@ -201,7 +213,7 @@ def run_dit_agent(
             .create(
                 model=MODEL,
                 messages=messages,
-                tools=tools,
+                tools=AGENT_TOOLS,
                 tool_choice="auto",
                 temperature=0.1,
                 max_tokens=700,
@@ -283,21 +295,25 @@ def run_dit_agent(
             )
 
             tool_payload = {
-                "found": result.get(
+                "success": result.get(
                     "found",
                     False,
                 ),
-                "query": result.get(
-                    "query",
+                "tool_result": result.get(
+                    "context",
                     "",
                 ),
-                "verified_context": (
-                    result.get(
-                        "context",
-                        "",
-                    )
-                ),
             }
+
+            if result.get("query"):
+                tool_payload["query"] = (
+                    result["query"]
+                )
+
+            if result.get("calculation"):
+                tool_payload["calculation"] = (
+                    result["calculation"]
+                )
 
             messages.append(
                 {
