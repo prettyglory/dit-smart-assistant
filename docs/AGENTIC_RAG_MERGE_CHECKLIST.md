@@ -60,7 +60,7 @@ python -m scripts.ingest
 python -m uvicorn app.main:app --reload
 ```
 
-In a second terminal, run the frontend from the repository root:
+Open a second terminal at the repository root, then run:
 
 ```powershell
 cd frontend
