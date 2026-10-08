@@ -3,35 +3,25 @@ import json
 from groq import Groq
 
 from app.config import GROQ_API_KEY
-from app.services.agent_tools import (
-    AGENT_TOOLS,
-    TOOL_HANDLERS,
-)
+from app.services.agent_tools import AGENT_TOOLS, TOOL_HANDLERS
 from app.services.programme_comparison_tool import (
     PROGRAMME_COMPARISON_TOOL,
     compare_dit_programmes,
 )
-from app.services.rate_limit_retry import (
-    run_with_rate_limit_retry,
-)
-from app.services.student_state import (
-    format_student_state_for_agent,
-)
-from app.services.task_planner import (
-    build_request_plan,
-    format_plan_for_agent,
-)
+from app.services.rate_limit_retry import run_with_rate_limit_retry
+from app.services.student_state import format_student_state_for_agent
+from app.services.task_planner import build_request_plan, format_plan_for_agent
 
 
 MODEL = "openai/gpt-oss-120b"
 MAX_AGENT_ITERATIONS = 7
 MAX_AGENT_HISTORY_MESSAGES = 10
+MAX_TOOL_RESULT_CHARS = 3200
+DEFAULT_RESPONSE_MAX_TOKENS = 650
+COMPARISON_RESPONSE_MAX_TOKENS = 450
 
 
-client = Groq(
-    api_key=GROQ_API_KEY
-)
-
+client = Groq(api_key=GROQ_API_KEY)
 
 AVAILABLE_AGENT_TOOLS = [
     *AGENT_TOOLS,
@@ -50,114 +40,25 @@ TOOL_SCHEMAS_BY_NAME = {
 
 
 SYSTEM_PROMPT = """
-You are DIT Smart Assistant, an agentic AI assistant for
-Dar es Salaam Institute of Technology (DIT) in Tanzania.
+You are DIT Smart Assistant for Dar es Salaam Institute of Technology (DIT).
+Answer in the user's language and keep answers clear and student-friendly.
 
-You assist students, applicants, staff and visitors.
-You can communicate naturally in both English and Kiswahili.
-
-CORE BEHAVIOUR:
-
-1. For factual questions about DIT, use a verified retrieval tool before
-   answering. Use search_dit_knowledge for normal factual lookups and
-   compare_dit_programmes for direct programme comparisons.
-
-2. Never invent DIT programmes, campuses, fees, admission requirements,
-   dates, regulations, contacts or policies.
-
-3. Treat verified retrieval results as the institutional source of truth
-   available to you.
-
-4. If verified retrieval does not find enough information, clearly say that
-   the requested information could not be verified from the available DIT
-   knowledge base.
-
-5. DIT has multiple campuses. Never assume information for one campus applies
-   to another campus.
-
-6. Use calculate_total_amount when exact monetary values need to be added.
-   Only pass amounts supplied by the user or returned by verified DIT
-   knowledge. Never guess missing amounts.
-
-ADMISSION ELIGIBILITY RULES:
-
-7. When a user asks whether they qualify, retrieve the relevant DIT admission
-   requirement with search_dit_knowledge before running an eligibility check.
-
-8. Use check_admission_eligibility only when BOTH the applicant's numeric
-   value and the matching numeric requirement from verified DIT knowledge are
-   available.
-
-9. Never guess, infer or fabricate an admission threshold just to run the
-   eligibility tool.
-
-10. check_admission_eligibility evaluates one numeric criterion at a time.
-    A positive result is NOT a final admission decision.
-
-11. Never tell a user that DIT has officially admitted, accepted or rejected
-    them. Final admission decisions belong to DIT.
-
-PROGRAMME COMPARISON RULES:
-
-12. When the user directly asks to compare two or more DIT programmes, prefer
-    compare_dit_programmes instead of manually comparing from memory.
-
-13. Compare only the programmes and aspects requested by the user. If aspects
-    are not specified, compare overview, campus, admission requirements and
-    fees.
-
-14. Do not invent a value when a programme comparison aspect is missing from
-    verified knowledge. State that it could not be verified.
-
-CONVERSATION MEMORY RULES:
-
-15. Use recent conversation history and structured student session context to
-    resolve follow-up references such as "that programme", "what about the
-    fees?", a campus, qualification or GPA supplied earlier.
-
-16. Structured student state is user-provided conversation context only. It
-    is NOT verified institutional data and must never substitute for retrieval
-    of DIT facts.
-
-17. For every factual DIT follow-up, still use the appropriate verified
-    retrieval tool before stating current DIT facts.
-
-18. If the current message changes programme, campus, qualification, GPA or
-    goal, prefer the newest explicit information over older session state.
-
-PLANNING RULES:
-
-19. When an execution plan is supplied by the runtime, follow its task order
-    and dependency relationships. Do not skip required tool work merely to
-    produce a faster answer.
-
-20. A dependent deterministic check must wait for its verified prerequisite.
-    If a required user input is missing, do not fabricate it; ask the user for
-    that input if it is necessary to continue.
-
-21. Tool failure is a valid observation. If verified information cannot be
-    retrieved, explain the limitation rather than inventing a result.
-
-22. Greetings, thanks and ordinary non-factual conversation may be answered
-    without calling a tool.
-
-23. Answer in the same language used by the user unless the user requests
-    another language.
-
-RESPONSE STYLE:
-
-24. Keep answers clear, factual and student-friendly.
-
-25. Use short paragraphs, Markdown headings and bullet points when they
-    improve readability.
-
-26. For programme comparisons, use a compact comparison structure or table
-    when the retrieved information supports it.
-
-27. Do not refer to retrieved chunks as "Source 1", "Source 2" or similar
-    labels. The application displays verified source metadata separately.
-
-28. Do not create links that were not returned by verified knowledge.
+Rules:
+- For factual DIT information, use the verified tool required by the runtime plan.
+- Never invent programmes, campuses, fees, admission rules, dates, contacts or policies.
+- If verified information is missing, say it could not be verified.
+- Never assume facts for one DIT campus apply to another.
+- Use calculate_total_amount only with user-supplied or verified amounts.
+- For admission eligibility, retrieve the official requirement first, then use
+  check_admission_eligibility only when both numeric values are available.
+  Eligibility results are preliminary; DIT makes final admission decisions.
+- For direct programme comparisons, use compare_dit_programmes and state when
+  an aspect could not be verified.
+- Use conversation history and student state only to resolve follow-ups; they
+  are not institutional truth. Factual follow-ups still require verified retrieval.
+- Follow runtime task dependencies. Never fabricate a missing prerequisite.
+- Greetings and ordinary conversation may be answered without tools.
+- Do not invent links. Verified source metadata is displayed separately.
 """.strip()
 
 
@@ -167,68 +68,24 @@ def _build_messages(
     student_state: dict | None = None,
     plan: dict | None = None,
 ) -> list:
-    messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT,
-        }
-    ]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
-    state_context = format_student_state_for_agent(
-        student_state
-    )
+    state_context = format_student_state_for_agent(student_state)
     if state_context:
-        messages.append(
-            {
-                "role": "system",
-                "content": state_context,
-            }
-        )
+        messages.append({"role": "system", "content": state_context})
 
-    plan_context = format_plan_for_agent(
-        plan
-    )
+    plan_context = format_plan_for_agent(plan)
     if plan_context:
-        messages.append(
-            {
-                "role": "system",
-                "content": plan_context,
-            }
-        )
+        messages.append({"role": "system", "content": plan_context})
 
     for item in history[-MAX_AGENT_HISTORY_MESSAGES:]:
-        role = item.get(
-            "role",
-            "",
-        )
-        content = item.get(
-            "content",
-            "",
-        ).strip()
-
-        if (
-            role not in {
-                "user",
-                "assistant",
-            }
-            or not content
-        ):
+        role = item.get("role", "")
+        content = item.get("content", "").strip()
+        if role not in {"user", "assistant"} or not content:
             continue
+        messages.append({"role": role, "content": content})
 
-        messages.append(
-            {
-                "role": role,
-                "content": content,
-            }
-        )
-
-    messages.append(
-        {
-            "role": "user",
-            "content": question,
-        }
-    )
-
+    messages.append({"role": "user", "content": question})
     return messages
 
 
@@ -237,11 +94,7 @@ def _merge_sources(
     new_sources: list[dict],
 ) -> None:
     seen = {
-        (
-            source.get("title", ""),
-            source.get("url", ""),
-            source.get("page"),
-        )
+        (source.get("title", ""), source.get("url", ""), source.get("page"))
         for source in collected_sources
     }
 
@@ -253,98 +106,49 @@ def _merge_sources(
         )
         if key in seen:
             continue
-
         seen.add(key)
-        collected_sources.append(
-            source
-        )
+        collected_sources.append(source)
 
 
-def _execute_tool(
-    tool_name: str,
-    arguments: dict,
-) -> dict:
-    handler = AVAILABLE_TOOL_HANDLERS.get(
-        tool_name
-    )
-
+def _execute_tool(tool_name: str, arguments: dict) -> dict:
+    handler = AVAILABLE_TOOL_HANDLERS.get(tool_name)
     if handler is None:
         return {
             "found": False,
-            "context": (
-                f"The requested tool '{tool_name}' is not available."
-            ),
+            "context": f"The requested tool '{tool_name}' is not available.",
             "sources": [],
         }
 
     try:
-        return handler(
-            **arguments
-        )
+        return handler(**arguments)
     except TypeError as error:
         return {
             "found": False,
             "context": (
-                "The tool request could not be executed because its "
-                f"arguments were invalid: {error}"
+                "The tool request could not be executed because its arguments "
+                f"were invalid: {error}"
             ),
             "sources": [],
         }
 
 
-def _required_tools_for_ready_tasks(
-    plan: dict,
-) -> set[str]:
+def _required_tools_for_ready_tasks(plan: dict) -> set[str]:
     required = set()
-
-    for task in plan.get(
-        "tasks",
-        [],
-    ):
-        if not task.get(
-            "ready",
-            True,
-        ):
-            continue
-
-        required.update(
-            task.get(
-                "required_tools",
-                [],
-            )
-        )
-
+    for task in plan.get("tasks", []):
+        if task.get("ready", True):
+            required.update(task.get("required_tools", []))
     return required
 
 
-def _tool_names_for_plan(
-    plan: dict,
-) -> set[str]:
-    """Return only tool schemas that can be relevant to this request plan."""
-
+def _tool_names_for_plan(plan: dict) -> set[str]:
     names = set()
-
-    for task in plan.get(
-        "tasks",
-        [],
-    ):
-        names.update(
-            task.get(
-                "required_tools",
-                [],
-            )
-        )
-
+    for task in plan.get("tasks", []):
+        names.update(task.get("required_tools", []))
     return names
 
 
-def _tools_for_plan(
-    plan: dict,
-) -> list[dict]:
-    requested_names = _tool_names_for_plan(
-        plan
-    )
-
+def _tools_for_plan(plan: dict) -> list[dict]:
+    requested_names = _tool_names_for_plan(plan)
     return [
         TOOL_SCHEMAS_BY_NAME[name]
         for name in TOOL_SCHEMAS_BY_NAME
@@ -352,9 +156,7 @@ def _tools_for_plan(
     ]
 
 
-def _blocked_dependency_result(
-    tool_name: str,
-) -> dict:
+def _blocked_dependency_result(tool_name: str) -> dict:
     return {
         "found": False,
         "context": (
@@ -366,20 +168,51 @@ def _blocked_dependency_result(
     }
 
 
-def _create_model_completion(
-    request_kwargs: dict,
-):
-    """Call Groq with provider-aware TPM retry for production chat requests."""
+def _bounded_text(value: str, max_chars: int = MAX_TOOL_RESULT_CHARS) -> str:
+    clean_value = str(value or "").strip()
+    if len(clean_value) <= max_chars:
+        return clean_value
+
+    marker = "\n[Tool result truncated to stay within the model context budget.]"
+    keep_chars = max(0, max_chars - len(marker))
+    return clean_value[:keep_chars].rstrip() + marker
+
+
+def _build_tool_payload(result: dict) -> dict:
+    """Build a bounded model-facing payload while preserving UI source metadata."""
+
+    payload = {
+        "success": result.get("found", False),
+        "tool_result": _bounded_text(result.get("context", "")),
+    }
+
+    for result_key in (
+        "query",
+        "calculation",
+        "eligibility",
+        "programme_comparison",
+    ):
+        if result.get(result_key):
+            payload[result_key] = result[result_key]
+
+    return payload
+
+
+def _response_token_budget(plan: dict) -> int:
+    task_ids = {
+        task.get("id", "")
+        for task in plan.get("tasks", [])
+    }
+    if "compare_programmes" in task_ids:
+        return COMPARISON_RESPONSE_MAX_TOKENS
+    return DEFAULT_RESPONSE_MAX_TOKENS
+
+
+def _create_model_completion(request_kwargs: dict):
+    """Call Groq with provider-aware rate-limit retry for production requests."""
 
     return run_with_rate_limit_retry(
-        lambda: (
-            client
-            .chat
-            .completions
-            .create(
-                **request_kwargs
-            )
-        ),
+        lambda: client.chat.completions.create(**request_kwargs),
         max_retries=3,
         fallback_seconds=25.0,
         label="DIT agent model request",
@@ -391,12 +224,7 @@ def run_dit_agent(
     history: list[dict] | None = None,
     student_state: dict | None = None,
 ):
-    """Run the planned DIT agentic tool loop.
-
-    The runtime builds an inspectable task plan before model execution. The
-    model still chooses concrete tool arguments, while runtime guards enforce
-    critical dependencies such as verified retrieval before eligibility checks.
-    """
+    """Run the planned DIT agentic tool loop with bounded context."""
 
     history = history or []
     student_state = student_state or {}
@@ -405,7 +233,6 @@ def run_dit_agent(
         question=question,
         student_state=student_state,
     )
-
     messages = _build_messages(
         question=question,
         history=history,
@@ -413,70 +240,40 @@ def run_dit_agent(
         plan=plan,
     )
 
-    required_tools = _required_tools_for_ready_tasks(
-        plan
-    )
-    request_tools = _tools_for_plan(
-        plan
-    )
+    required_tools = _required_tools_for_ready_tasks(plan)
+    request_tools = _tools_for_plan(plan)
+    response_max_tokens = _response_token_budget(plan)
     attempted_tools: set[str] = set()
     successful_tools: set[str] = set()
     sources = []
 
-    for _ in range(
-        MAX_AGENT_ITERATIONS
-    ):
+    for _ in range(MAX_AGENT_ITERATIONS):
         request_kwargs = {
             "model": MODEL,
             "messages": messages,
             "temperature": 0.1,
-            "max_tokens": 700,
+            "max_tokens": response_max_tokens,
         }
 
         if request_tools:
-            request_kwargs[
-                "tools"
-            ] = request_tools
-            request_kwargs[
-                "tool_choice"
-            ] = "auto"
+            request_kwargs["tools"] = request_tools
+            request_kwargs["tool_choice"] = "auto"
 
-        completion = _create_model_completion(
-            request_kwargs
-        )
-
-        message = (
-            completion
-            .choices[0]
-            .message
-        )
-        tool_calls = (
-            message.tool_calls
-            or []
-        )
+        completion = _create_model_completion(request_kwargs)
+        message = completion.choices[0].message
+        tool_calls = message.tool_calls or []
 
         if not tool_calls:
-            pending_tools = (
-                required_tools
-                - attempted_tools
-            )
-
+            pending_tools = required_tools - attempted_tools
             if pending_tools:
-                messages.append(
-                    message
-                )
+                messages.append(message)
                 messages.append(
                     {
                         "role": "system",
                         "content": (
-                            "The execution plan is incomplete. Before producing "
-                            "the final answer, attempt these pending required "
-                            "tools when their inputs are available: "
-                            + ", ".join(
-                                sorted(
-                                    pending_tools
-                                )
-                            )
+                            "The execution plan is incomplete. Attempt these pending "
+                            "required tools when their inputs are available: "
+                            + ", ".join(sorted(pending_tools))
                             + ". Do not fabricate missing inputs or facts."
                         ),
                     }
@@ -485,121 +282,53 @@ def run_dit_agent(
 
             return (
                 message.content
-                or (
-                    "I could not produce a complete answer for that request."
-                ),
+                or "I could not produce a complete answer for that request.",
                 sources,
             )
 
-        messages.append(
-            message
-        )
+        messages.append(message)
 
         for tool_call in tool_calls:
-            tool_name = (
-                tool_call
-                .function
-                .name
-            )
-            attempted_tools.add(
-                tool_name
-            )
+            tool_name = tool_call.function.name
+            attempted_tools.add(tool_name)
 
             try:
-                arguments = json.loads(
-                    tool_call
-                    .function
-                    .arguments
-                    or "{}"
-                )
-
-                if not isinstance(
-                    arguments,
-                    dict,
-                ):
-                    raise ValueError(
-                        "Tool arguments must be a JSON object."
-                    )
+                arguments = json.loads(tool_call.function.arguments or "{}")
+                if not isinstance(arguments, dict):
+                    raise ValueError("Tool arguments must be a JSON object.")
 
                 if (
-                    tool_name
-                    == "check_admission_eligibility"
-                    and "search_dit_knowledge"
-                    not in successful_tools
+                    tool_name == "check_admission_eligibility"
+                    and "search_dit_knowledge" not in successful_tools
                 ):
-                    result = _blocked_dependency_result(
-                        tool_name
-                    )
+                    result = _blocked_dependency_result(tool_name)
                 else:
                     result = _execute_tool(
                         tool_name=tool_name,
                         arguments=arguments,
                     )
-
-            except (
-                json.JSONDecodeError,
-                ValueError,
-            ) as error:
+            except (json.JSONDecodeError, ValueError) as error:
                 result = {
                     "found": False,
                     "context": (
-                        "The tool request could not be executed because its "
-                        f"arguments were invalid: {error}"
+                        "The tool request could not be executed because its arguments "
+                        f"were invalid: {error}"
                     ),
                     "sources": [],
                 }
 
-            if result.get(
-                "found",
-                False,
-            ):
-                successful_tools.add(
-                    tool_name
-                )
+            if result.get("found", False):
+                successful_tools.add(tool_name)
 
-            _merge_sources(
-                sources,
-                result.get(
-                    "sources",
-                    [],
-                ),
-            )
-
-            tool_payload = {
-                "success": result.get(
-                    "found",
-                    False,
-                ),
-                "tool_result": result.get(
-                    "context",
-                    "",
-                ),
-            }
-
-            for result_key in (
-                "query",
-                "calculation",
-                "eligibility",
-                "programme_comparison",
-            ):
-                if result.get(
-                    result_key
-                ):
-                    tool_payload[result_key] = (
-                        result[result_key]
-                    )
+            _merge_sources(sources, result.get("sources", []))
+            tool_payload = _build_tool_payload(result)
 
             messages.append(
                 {
                     "role": "tool",
-                    "tool_call_id": (
-                        tool_call.id
-                    ),
+                    "tool_call_id": tool_call.id,
                     "name": tool_name,
-                    "content": json.dumps(
-                        tool_payload,
-                        ensure_ascii=False,
-                    ),
+                    "content": json.dumps(tool_payload, ensure_ascii=False),
                 }
             )
 
