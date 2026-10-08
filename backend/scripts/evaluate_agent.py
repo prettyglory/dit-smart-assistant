@@ -17,9 +17,6 @@ from app.services.agent_evaluation import (  # noqa: E402
     load_eval_cases,
     summarize_results,
 )
-from app.services.rate_limit_retry import (  # noqa: E402
-    run_with_rate_limit_retry,
-)
 
 
 def _print_result(result: dict) -> None:
@@ -43,9 +40,7 @@ def run_offline(cases: list[dict]) -> list[dict]:
     results = []
 
     for case in cases:
-        result = evaluate_offline_case(
-            case
-        )
+        result = evaluate_offline_case(case)
         results.append(result)
         _print_result(result)
 
@@ -64,38 +59,14 @@ def run_live(cases: list[dict]) -> list[dict]:
     results = []
 
     for case in cases:
-        case_id = case.get(
-            "id",
-            "case",
+        case_id = case.get("id", "case")
+        answer, _, trace_id = run_traced_dit_agent(
+            question=case.get("question", ""),
+            student_state=case.get("student_state", {}),
+            session_id="eval-" + case_id,
         )
 
-        def execute_case():
-            return run_traced_dit_agent(
-                question=case.get(
-                    "question",
-                    "",
-                ),
-                student_state=case.get(
-                    "student_state",
-                    {},
-                ),
-                session_id=(
-                    "eval-"
-                    + case_id
-                ),
-            )
-
-        answer, _, trace_id = run_with_rate_limit_retry(
-            execute_case,
-            max_retries=3,
-            fallback_seconds=25.0,
-            label=f"Live eval {case_id}",
-        )
-
-        trace = agent_traces.get(
-            trace_id
-        ) or {}
-
+        trace = agent_traces.get(trace_id) or {}
         result = evaluate_live_result(
             case=case,
             answer=answer,
@@ -115,10 +86,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--mode",
-        choices=(
-            "offline",
-            "live",
-        ),
+        choices=("offline", "live"),
         default="offline",
     )
     parser.add_argument(
@@ -128,19 +96,14 @@ def main() -> int:
     )
 
     args = parser.parse_args()
-
-    cases = load_eval_cases(
-        args.dataset
-    )
+    cases = load_eval_cases(args.dataset)
 
     if args.mode == "live":
         results = run_live(cases)
     else:
         results = run_offline(cases)
 
-    summary = summarize_results(
-        results
-    )
+    summary = summarize_results(results)
 
     print("\nEvaluation summary")
     print(
