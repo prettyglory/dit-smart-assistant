@@ -128,12 +128,12 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/smoke_test_agent.py
 
-      - name: Run live agent evaluation suite
+      - name: Run focused live agent evaluation suite
         if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available == 'true'
         working-directory: backend
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: python scripts/evaluate_agent.py --mode live
+        run: python scripts/evaluate_agent.py --mode live --dataset evals/dit_agent_live_cases.json
 
       - name: Report missing secret blocker
         if: steps.marker.outputs.enabled == 'true' && steps.secret.outputs.available != 'true'
