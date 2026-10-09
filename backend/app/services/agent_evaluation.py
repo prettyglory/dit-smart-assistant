@@ -185,6 +185,14 @@ def evaluate_live_result(
         or ""
     ).lower()
 
+    required_answer_phrases = [
+        phrase.lower()
+        for phrase in case.get(
+            "required_answer_phrases",
+            [],
+        )
+    ]
+
     forbidden_answer_phrases = [
         phrase.lower()
         for phrase in case.get(
@@ -228,6 +236,10 @@ def evaluate_live_result(
                 )
             )
             >= min_sources
+        ),
+        "required_answer_phrases_present": all(
+            phrase in normalized_answer
+            for phrase in required_answer_phrases
         ),
         "forbidden_claims_absent": not any(
             phrase in normalized_answer
