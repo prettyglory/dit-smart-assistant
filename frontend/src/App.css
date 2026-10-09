@@ -392,6 +392,55 @@ button {
   line-height: 1.55;
 }
 
+.markdown-table-wrap {
+  width: 100%;
+  margin: 14px 0 18px;
+  overflow-x: auto;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.markdown-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.markdown-table th,
+.markdown-table td {
+  padding: 11px 13px;
+  border-right: 1px solid #e5eaf1;
+  border-bottom: 1px solid #e5eaf1;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-table th:last-child,
+.markdown-table td:last-child {
+  border-right: none;
+}
+
+.markdown-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-table th {
+  background: #eef4ff;
+  color: #143a78;
+  font-weight: 700;
+}
+
+.markdown-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.markdown-table p {
+  margin: 0;
+}
+
 
 /* ========================================
    SOURCES
@@ -883,6 +932,16 @@ button {
   .assistant .message-text h1,
   .assistant .message-text h2 {
     font-size: 18px;
+  }
+
+  .markdown-table {
+    min-width: 500px;
+    font-size: 13px;
+  }
+
+  .markdown-table th,
+  .markdown-table td {
+    padding: 9px 10px;
   }
 
   .input-area {
