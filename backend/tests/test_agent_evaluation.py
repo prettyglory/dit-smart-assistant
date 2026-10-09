@@ -117,6 +117,61 @@ class AgentEvaluationTests(unittest.TestCase):
             ]
         )
 
+    def test_live_evaluation_requires_expected_answer_facts(self):
+        case = {
+            "id": "programme-facts",
+            "category": "programme_grounding",
+            "required_tools": [
+                "search_dit_knowledge"
+            ],
+            "forbidden_tools": [],
+            "min_sources": 1,
+            "required_answer_phrases": [
+                "Mwanza",
+                "Leather Products Technology",
+            ],
+            "forbidden_answer_phrases": [],
+        }
+
+        trace = {
+            "status": "completed",
+            "source_count": 1,
+            "events": [
+                {
+                    "type": "tool_call",
+                    "tool_name": "search_dit_knowledge",
+                    "success": True,
+                }
+            ],
+        }
+
+        passing = evaluate_live_result(
+            case=case,
+            answer=(
+                "Leather Products Technology is listed in verified DIT "
+                "information for Mwanza Campus."
+            ),
+            trace=trace,
+        )
+
+        missing_campus = evaluate_live_result(
+            case=case,
+            answer="Leather Products Technology is offered by DIT.",
+            trace=trace,
+        )
+
+        self.assertTrue(
+            passing["passed"]
+        )
+        self.assertFalse(
+            missing_campus["passed"]
+        )
+        self.assertFalse(
+            missing_campus["checks"][
+                "required_answer_phrases_present"
+            ]
+        )
+
     def test_summary_reports_pass_rate_by_category(self):
         summary = summarize_results(
             [
