@@ -12,6 +12,10 @@
     ],
     "forbidden_tools": [],
     "min_sources": 1,
+    "required_answer_phrases": [
+      "Leather Products Technology",
+      "Mwanza"
+    ],
     "forbidden_answer_phrases": [
       "does not contain a confirmed entry",
       "programme does not exist",
