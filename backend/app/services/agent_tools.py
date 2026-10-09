@@ -1,6 +1,10 @@
 from decimal import Decimal, InvalidOperation
 
 from app.services.rag_service import detect_categories
+from app.services.retrieval_query_expansion import (
+    enrich_categories,
+    expand_dit_search_queries,
+)
 from app.services.vector_store import search_knowledge
 
 
@@ -166,6 +170,51 @@ def _normalize_page(value):
     return None
 
 
+def _merge_ranked_matches(
+    searches: list[list[dict]],
+    limit: int,
+) -> list[dict]:
+    """Deduplicate results from expanded queries and keep best distances."""
+
+    best_by_document = {}
+
+    for matches in searches:
+        for match in matches:
+            document = match.get(
+                "document",
+                "",
+            )
+            metadata = match.get(
+                "metadata",
+                {},
+            )
+
+            key = (
+                document,
+                metadata.get("source_url", ""),
+                metadata.get("page"),
+            )
+
+            previous = best_by_document.get(key)
+
+            if (
+                previous is None
+                or match.get("distance", 1.0)
+                < previous.get("distance", 1.0)
+            ):
+                best_by_document[key] = match
+
+    ranked = sorted(
+        best_by_document.values(),
+        key=lambda item: item.get(
+            "distance",
+            1.0,
+        ),
+    )
+
+    return ranked[:limit]
+
+
 def search_dit_knowledge(
     query: str,
     n_results: int = 8,
@@ -173,8 +222,9 @@ def search_dit_knowledge(
     """
     Search the verified DIT vector knowledge base.
 
-    The function returns both model-facing context and source metadata
-    that can be displayed by the API/UI.
+    Programme/campus queries are expanded deterministically so small wording
+    differences such as "Leather Product Technology" versus the verified
+    "Leather Products Technology" do not cause false negatives.
     """
 
     clean_query = query.strip()
@@ -190,18 +240,35 @@ def search_dit_knowledge(
             "sources": [],
         }
 
-    categories = detect_categories(
+    categories = enrich_categories(
+        clean_query,
+        detect_categories(
+            clean_query
+        ),
+    )
+
+    expanded_queries = expand_dit_search_queries(
         clean_query
     )
 
-    matches = search_knowledge(
-        question=clean_query,
-        n_results=n_results,
-        categories=(
-            categories
-            if categories
-            else None
-        ),
+    search_batches = []
+
+    for expanded_query in expanded_queries:
+        search_batches.append(
+            search_knowledge(
+                question=expanded_query,
+                n_results=n_results,
+                categories=(
+                    categories
+                    if categories
+                    else None
+                ),
+            )
+        )
+
+    matches = _merge_ranked_matches(
+        search_batches,
+        n_results,
     )
 
     context_parts = []
@@ -265,6 +332,7 @@ def search_dit_knowledge(
         unique_key = (
             source_title,
             source_url,
+            campus,
             page,
         )
 
