@@ -1,5 +1,24 @@
 [
   {
+    "id": "mwanza_leather_product_alias",
+    "category": "programme_grounding",
+    "question": "Tell me about leather product technology at DIT.",
+    "student_state": {},
+    "expected_plan_tasks": [
+      "retrieve_requested_information"
+    ],
+    "required_tools": [
+      "search_dit_knowledge"
+    ],
+    "forbidden_tools": [],
+    "min_sources": 1,
+    "forbidden_answer_phrases": [
+      "does not contain a confirmed entry",
+      "programme does not exist",
+      "all dit campuses"
+    ]
+  },
+  {
     "id": "fee_total",
     "category": "fees",
     "question": "Give me the fees and calculate the total amount I will pay.",
