@@ -5,7 +5,7 @@ import {
 } from "react";
 
 import axios from "axios";
-import ReactMarkdown from "react-markdown";
+import MarkdownMessage from "./MarkdownMessage";
 import "./App.css";
 
 
@@ -830,9 +830,9 @@ function App() {
                     {message.role ===
                     "assistant" ? (
 
-                      <ReactMarkdown>
-                        {message.text}
-                      </ReactMarkdown>
+                      <MarkdownMessage
+                        content={message.text}
+                      />
 
                     ) : (
 
